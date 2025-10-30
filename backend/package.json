@@ -4,8 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-  "dev": "node --watch src/server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "ts:build": "tsc",
+    "ts:watch": "tsc -w",
+    "dev": "node --watch src/server.js"
   },
   "keywords": [],
   "author": "",
@@ -15,5 +16,11 @@
     "dotenv": "^17.2.3",
     "express": "^5.1.0",
     "mongoose": "^8.19.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.19",
+    "@types/express": "^5.0.5",
+    "@types/node": "^24.9.2",
+    "typescript": "^5.9.3"
   }
 }

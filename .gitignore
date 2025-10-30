@@ -1,0 +1,25 @@
+# --- Node / NPM ---
+node_modules/
+npm-debug.log
+yarn-error.log
+package-lock.json
+
+# --- TypeScript builds ---
+dist/
+build/
+
+# --- Environment files ---
+.env
+
+# --- Angular / frontend ---
+.angular/
+dist/
+coverage/
+
+# --- VS Code ---
+.vscode/
+*.code-workspace
+
+# --- System ---
+.DS_Store
+Thumbs.db
