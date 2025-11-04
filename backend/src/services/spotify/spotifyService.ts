@@ -116,3 +116,4 @@ export async function getAlbumById(id: string) {
   if (!res.ok) throw new Error(`get album failed ${res.status}`);
   return mapAlbum(await res.json());
 }
+

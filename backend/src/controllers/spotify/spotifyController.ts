@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { searchTracks, searchAlbums, getAlbumById, getTrackById } from "../services/spotifyService.js";
+import { searchTracks, searchAlbums, getAlbumById, getTrackById } from "../../services/spotify/spotifyService.js";
 
 export async function searchTracksCtrl(req: Request, res: Response) {
   const q = String(req.query.q || "").trim();
@@ -20,3 +20,4 @@ export async function getTrackCtrl(req: Request, res: Response) {
 export async function getAlbumCtrl(req: Request, res: Response) {
   res.json(await getAlbumById(req.params.id));
 }
+

@@ -4,7 +4,7 @@ import {
   searchAlbumsCtrl,
   getTrackCtrl,
   getAlbumCtrl,
-} from "../controllers/spotifyController.js";
+} from "../../controllers/spotify/spotifyController.js";
 
 const spotifyRoutes = Router();
 
@@ -21,3 +21,4 @@ spotifyRoutes.get("/tracks/:id", getTrackCtrl);
 spotifyRoutes.get("/albums/:id", getAlbumCtrl);
 
 export default spotifyRoutes;
+
