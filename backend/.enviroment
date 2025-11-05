@@ -1,5 +1,7 @@
 ﻿SPOTIFY_CLIENT_ID=ea445a4b37fb4912845d57f5f7cbd950
 SPOTIFY_CLIENT_SECRET=a87a90d13dcc45f2b0205dd435631661
+SPOTIFY_REDIRECT_URI=http://127.0.0.1:3000/callback
 SPOTIFY_MARKET=ES
 PORT=3000
 MONGODB_URI=mongodb+srv://hugocalo97:hugocalo@mondongodb.ucrwfs5.mongodb.net/?appName=MondongoDB
+FRONTEND_ORIGIN=http://localhost:4200

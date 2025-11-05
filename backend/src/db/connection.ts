@@ -1,18 +1,20 @@
-import mongoose from "mongoose";
+import mongoose from 'mongoose';
 
-function getEnvVariable(envVariableName: string): string {
-  const envVariableValue = process.env[envVariableName];
-  if (!envVariableValue) throw new Error(`Missing env: ${envVariableName}`);
-  return envVariableValue;
-}
-
-export async function connectToDatabase() {
-  try {
-    const mongoDbUri = getEnvVariable("MONGODB_URI");
-    await mongoose.connect(mongoDbUri);
-    console.log("✅ Conectado a MongoDB");
-  } catch (connectionError) {
-    console.error("❌ Error conectando a MongoDB:", connectionError);
-    throw connectionError;
+export async function connectDB() {
+  const uri = process.env.MONGO_URI;
+  if (!uri) {
+    console.error('❌ MONGO_URI no definida en variables de entorno');
+    process.exit(1);
   }
+  try {
+    await mongoose.connect(uri, {
+      dbName: 'jarana', 
+    });
+    console.log('✅ Conectado a MongoDB Atlas');
+  } catch (err) {
+    const error = err instanceof Error ? err : new Error(String(err));
+    console.error('❌ Error al conectar con MongoDB:', error.message);
+    process.exit(1);
+  }
+}
 }
