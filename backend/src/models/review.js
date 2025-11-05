@@ -6,38 +6,22 @@ const ReviewSchema = new mongoose.Schema({
 
   user_id: { 
     type: String, 
-    required: true 
+    required: true,
+    ref: 'User'
   },
   genre: { 
     type: String, 
-    enum: [
-        'pop',
-        'rock',
-        'hip-hop',
-        'r&b',
-        'electronic',
-        'country',
-        'jazz',
-        'blues',
-        'reggae',
-        'folk',
-        'latin',
-        'metal',
-        'classical',
-        'funk',
-        'indie'
+      enum: [
+        'pop', 'rock', 'hip-hop', 'r&b', 'electronic', 'country',
+        'jazz', 'blues', 'reggae', 'folk', 'latin', 'metal',
+        'classical', 'funk', 'indie'
     ], 
     required: true 
-  },
-
+    },
+  
   target_type: { 
     type: String, 
-    enum: [
-        'track',
-        'album',
-        'artist',
-        'playlist'
-    ],
+    enum: [ 'track', 'album', 'artist', 'playlist' ],
     required: true 
   },
 
@@ -52,9 +36,9 @@ const ReviewSchema = new mongoose.Schema({
     maxlength: 1000 
   },
 
-  rating: { 
+  rating: {   
     type: Number, 
-    min: 0, 
+    min: 0,
     max: 5, 
     required: true 
   },
@@ -68,7 +52,7 @@ const ReviewSchema = new mongoose.Schema({
   versionKey: false
 });
 
-ReviewSchema.index({ target_spotify_id: 1, target_type: 1 });
+ReviewSchema.index({ spotify_id: 1, target_type: 1 });
 ReviewSchema.index({ user_id: 1 });
 
 export default mongoose.model('Review', ReviewSchema);

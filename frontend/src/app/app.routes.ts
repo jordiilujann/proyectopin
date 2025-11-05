@@ -5,6 +5,7 @@ import { ShellComponent }   from './components/shell/shell.component';
 import { FeedComponent }    from './components/feed/feed.component';
 import { SearchComponent }  from './components/search/search.component';
 import { ProfileComponent } from './components/profile/profile.component';
+import { ReviewComponent }  from './components/review/review.component';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'login' },
@@ -21,6 +22,9 @@ export const routes: Routes = [
       { path: 'profile', component: ProfileComponent },
     ],
   },
+  
+  { path: 'review', component: ReviewComponent },
+  
 
   { path: '**', redirectTo: 'login' },
 ];
