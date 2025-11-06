@@ -1,6 +1,6 @@
-// src/models/comment.model.js
+// src/models/comment.js
 import mongoose from 'mongoose';
-import BaseSchema from './base.model.js';
+import BaseSchema from './base.js';
 
 const CommentSchema = new mongoose.Schema({
   ...BaseSchema.obj, // _id (20 chars) + created_at

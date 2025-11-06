@@ -8,7 +8,8 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "moduleResolution": "node",
+    "allowJs": true,
     "types": ["node"]
   },
-  "include": ["src/controllers", "src/services", "src/routes", "src/db"]
+  "include": ["src/controllers", "src/services", "src/routes", "src/db", "src/models"]
 }

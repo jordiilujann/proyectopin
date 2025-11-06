@@ -1,9 +1,9 @@
 import mongoose from 'mongoose';
 
 export async function connectDB() {
-  const uri = process.env.MONGO_URI;
+  const uri = process.env.MONGODB_URI;
   if (!uri) {
-    console.error('❌ MONGO_URI no definida en variables de entorno');
+    console.error('❌ MONGODB_URI no definida en variables de entorno');
     process.exit(1);
   }
   try {
@@ -16,5 +16,4 @@ export async function connectDB() {
     console.error('❌ Error al conectar con MongoDB:', error.message);
     process.exit(1);
   }
-}
 }

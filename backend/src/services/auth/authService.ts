@@ -39,7 +39,15 @@ export async function exchangeCodeForTokens(code: string) {
     body,
   });
 
-  if (!response.ok) throw new Error("Failed to exchange code for tokens");
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('❌ Error al intercambiar el código por tokens:', {
+      status: response.status,
+      statusText: response.statusText,
+      body: errorText,
+    });
+    throw new Error(`Failed to exchange code for tokens: ${response.status} ${response.statusText} ${errorText}`);
+  }
   
   return await response.json();
 }
@@ -71,7 +79,15 @@ export async function getUserProfile(accessToken: string) {
     },
   });
 
-  if (!response.ok) throw new Error("Failed to fetch user profile");
+  if (!response.ok) {
+    const errorText = await response.text();
+    console.error('❌ Error al obtener el perfil de Spotify:', {
+      status: response.status,
+      statusText: response.statusText,
+      body: errorText,
+    });
+    throw new Error(`Failed to fetch user profile: ${response.status} ${response.statusText} ${errorText}`);
+  }
   
   return await response.json();
 }
@@ -80,7 +96,7 @@ export function setTokenCookies(res: Response, accessToken: string, refreshToken
   const cookieOptions = {
     httpOnly: true,
     path: "/",
-    domain: "localhost",
+    domain: "127.0.0.1",
   };
   
   res.cookie("spotify_access_token", accessToken, {

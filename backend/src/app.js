@@ -3,16 +3,14 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import routes from "../build/routes/index.js";
 import authRoutes from "../build/routes/auth/authRoutes.js";
-import dotenv from 'dotenv';
-import { connectDB } from './config/db.js';
+import { connectDB } from '../build/db/connection.js';
 
-dotenv.config();
 await connectDB();
 
 const app = express();
 
 app.use(cors({
-  origin: process.env.FRONTEND_ORIGIN || "http://localhost:4200",
+  origin: ["http://localhost:4200", "http://127.0.0.1:4200"],
   credentials: true,
 }));
 

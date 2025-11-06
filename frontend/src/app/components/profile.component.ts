@@ -21,7 +21,11 @@ export class ProfileComponent implements OnInit {
   ngOnInit() {
     this.route.queryParams.subscribe(params => {
       if (params['access_token'] && params['refresh_token']) {
-        this.authService.saveTokens(params['access_token'], params['refresh_token']);
+        this.authService.saveTokens(
+          params['access_token'], 
+          params['refresh_token'],
+          params['user_id']
+        );
         window.history.replaceState({}, '', '/');
         this.loadProfile();
       } else if (params['error']) {
@@ -33,23 +37,33 @@ export class ProfileComponent implements OnInit {
   }
 
   login() {
+    // Si ya hay token guardado, intentar cargar el perfil
+    if (this.authService.getAccessToken()) {
+      this.loadProfile();
+      return;
+    }
+    // Si no hay token, redirigir a Spotify para iniciar sesión
     this.authService.login();
   }
 
   loadProfile() {
-    try {
-      this.authService.getProfile().subscribe({
-        next: (data) => {
-          this.profile = data;
-          this.error = '';
-        },
-        error: () => {
-          this.profile = null;
-        }
-      });
-    } catch (error) {
+    const token = this.authService.getAccessToken();
+    if (!token) {
       this.profile = null;
+      return;
     }
+
+    this.authService.getProfile().subscribe({
+      next: (data) => {
+        this.profile = data;
+        this.error = '';
+      },
+      error: () => {
+        // Si falla, el token probablemente expiró, redirigir a login
+        this.profile = null;
+        this.authService.login();
+      }
+    });
   }
 
   logout() {

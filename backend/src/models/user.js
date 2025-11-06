@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import BaseSchema from './base.model.js';
+import BaseSchema from './base.js';
 
 const UserSchema = new mongoose.Schema({
   ...BaseSchema.obj,
@@ -11,7 +11,6 @@ const UserSchema = new mongoose.Schema({
   },
   name: { 
     type: String, 
-    required: true 
   },
   email: { 
     type: String 

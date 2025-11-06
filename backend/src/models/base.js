@@ -1,7 +1,6 @@
 import mongoose from 'mongoose';
 import crypto from 'crypto';
-import moment from 'moment';
-// Función para generar un ID aleatorio de 20 caracteres
+
 function generateRandomId(length = 20) {
   return crypto.randomBytes(Math.ceil(length / 2)).toString('hex').slice(0, length);
 }
@@ -15,7 +14,7 @@ const BaseSchema = new mongoose.Schema(
     },
     created_at: {
       type: Date,
-      default: moment()
+      default: () => new Date()
     },
   },
   {

@@ -6,9 +6,10 @@ import { Observable } from 'rxjs';
   providedIn: 'root'
 })
 export class AuthService {
-  private readonly API_URL = 'http://localhost:3000';
+  private readonly API_URL = 'http://127.0.0.1:3000';
   private readonly ACCESS_TOKEN_KEY = 'spotify_access_token';
   private readonly REFRESH_TOKEN_KEY = 'spotify_refresh_token';
+  private readonly USER_ID_KEY = 'user_id';
 
   constructor(private http: HttpClient) {}
 
@@ -16,9 +17,16 @@ export class AuthService {
     window.location.href = `${this.API_URL}/login`;
   }
 
-  saveTokens(accessToken: string, refreshToken: string): void {
+  saveTokens(accessToken: string, refreshToken: string, userId?: string): void {
     localStorage.setItem(this.ACCESS_TOKEN_KEY, accessToken);
     localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
+    if (userId) {
+      localStorage.setItem(this.USER_ID_KEY, userId);
+    }
+  }
+
+  getUserId(): string | null {
+    return localStorage.getItem(this.USER_ID_KEY);
   }
 
   getAccessToken(): string | null {
@@ -41,6 +49,7 @@ export class AuthService {
   logout(): Observable<any> {
     localStorage.removeItem(this.ACCESS_TOKEN_KEY);
     localStorage.removeItem(this.REFRESH_TOKEN_KEY);
+    localStorage.removeItem(this.USER_ID_KEY);
     return this.http.post(`${this.API_URL}/logout`, {});
   }
 }

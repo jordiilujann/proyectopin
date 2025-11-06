@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
+  "type": "module",
   "scripts": {
     "ts:build": "tsc",
     "ts:watch": "tsc -w",
-    "dev": "set DOTENV_CONFIG_PATH=.enviroment&& node --watch -r dotenv/config src/server.js"
+    "dev": "npm run ts:build && node --watch src/server.js",
+    "start": "npm run ts:build && node src/server.js"
   },
   "keywords": [],
   "author": "",

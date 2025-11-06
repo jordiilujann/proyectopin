@@ -1,5 +1,5 @@
 import mongoose from 'mongoose';
-import BaseSchema from './base.model.js';
+import BaseSchema from './base.js';
 
 const ReviewSchema = new mongoose.Schema({
   ...BaseSchema.obj,
