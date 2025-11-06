@@ -46,6 +46,10 @@ export class AuthService {
     return this.http.get(`${this.API_URL}/api/me`, { headers });
   }
 
+  isAuthenticated(): boolean {
+    return !!this.getAccessToken();
+  }
+
   logout(): Observable<any> {
     localStorage.removeItem(this.ACCESS_TOKEN_KEY);
     localStorage.removeItem(this.REFRESH_TOKEN_KEY);
@@ -53,4 +57,3 @@ export class AuthService {
     return this.http.post(`${this.API_URL}/logout`, {});
   }
 }
-

@@ -1,14 +1,37 @@
-<div class="w-full min-h-screen flex items-center justify-center">
-  <div class="w-full max-w-md p-4">
-    <div class="text-center mb-6">
-      <span>inicia sesión con spotify</span>
+<div class="w-full min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50">
+  <div class="w-full max-w-md p-8">
+    <div class="text-center mb-8">
+      <h1 class="text-4xl font-bold mb-2 text-gray-800">Spotifind</h1>
+      <p class="text-gray-600">Descubre y comparte música</p>
     </div>
 
-    <div class="flex justify-center">
-      <label>
-        <span class="px-4 py-3 border border-neutral-300 rounded cursor-pointer select-none"
-              (click)="onLoginClicked()">continuar con spotify</span>
-      </label>
+    <div class="bg-white rounded-lg shadow-lg p-6">
+      <div class="text-center mb-6">
+        <span class="text-lg text-gray-700">Inicia sesión con Spotify</span>
+      </div>
+
+      <div *ngIf="errorMessage" class="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded text-sm">
+        {{ errorMessage }}
+      </div>
+
+      <div class="flex justify-center">
+        <button 
+          [disabled]="isProcessing"
+          [class.opacity-50]="isProcessing"
+          [class.cursor-not-allowed]="isProcessing"
+          class="px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-full cursor-pointer select-none transition-colors duration-200 flex items-center gap-2"
+          (click)="onLoginClicked()">
+          <span *ngIf="!isProcessing">Continuar con Spotify</span>
+          <span *ngIf="isProcessing" class="flex items-center gap-2">
+            <span class="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+            Conectando...
+          </span>
+        </button>
+      </div>
+
+      <div class="mt-6 text-center text-sm text-gray-500">
+        <p>Al continuar, aceptas compartir tu información de Spotify</p>
+      </div>
     </div>
   </div>
 </div>

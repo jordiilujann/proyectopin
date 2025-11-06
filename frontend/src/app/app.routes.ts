@@ -6,16 +6,22 @@ import { FeedComponent }    from './components/feed/feed.component';
 import { SearchComponent }  from './components/search/search.component';
 import { ProfileComponent } from './components/profile/profile.component';
 import { ReviewComponent }  from './components/review/review.component';
+import { authGuard, loginGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'login' },
 
-  { path: 'login', component: LoginComponent },
+  { 
+    path: 'login', 
+    component: LoginComponent,
+    canActivate: [loginGuard] // Si ya está autenticado, redirige al feed
+  },
 
   {
     path: 'app',
     component: ShellComponent,
-        children: [
+    canActivate: [authGuard], // Proteger todas las rutas de la app
+    children: [
       { path: '', pathMatch: 'full', redirectTo: 'feed' },
       { path: 'feed',    component: FeedComponent },
       { path: 'search',  component: SearchComponent },
@@ -23,8 +29,11 @@ export const routes: Routes = [
     ],
   },
   
-  { path: 'review', component: ReviewComponent },
+  { 
+    path: 'review', 
+    component: ReviewComponent,
+    canActivate: [authGuard] // Proteger la ruta de review también
+  },
   
-
   { path: '**', redirectTo: 'login' },
 ];
