@@ -1,0 +1,31 @@
+<div class="min-h-screen flex flex-col">
+  <div class="flex-1 overflow-auto pb-16">
+    <router-outlet></router-outlet>
+  </div>
+
+  <div class="fixed bottom-0 left-0 right-0 border-t border-neutral-300 bg-white">
+    <div class="max-w-md mx-auto flex justify-around items-center py-3">
+      
+      <label>
+        <span class="cursor-pointer text-2xl" [routerLink]="['/app/feed']" routerLinkActive="font-bold">🏠</span>
+      </label>
+      
+      <label>
+        <span class="cursor-pointer text-2xl" [routerLink]="['/app/search']" routerLinkActive="font-bold">🔎</span>
+      </label>
+      
+      <label>
+        <span 
+          class="cursor-pointer text-4xl font-semibold text-blue-500 active:text-blue-700" 
+          [routerLink]="['/review']">
+          +
+        </span>
+      </label>
+      
+      <label>
+        <span class="cursor-pointer text-2xl" [routerLink]="['/app/profile']" routerLinkActive="font-bold">👤</span>
+      </label>
+
+    </div>
+  </div>
+</div>
