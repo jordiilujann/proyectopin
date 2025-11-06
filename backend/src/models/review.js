@@ -11,12 +11,6 @@ const ReviewSchema = new mongoose.Schema({
   },
   genre: { 
     type: String, 
-      enum: [
-        'pop', 'rock', 'hip-hop', 'r&b', 'electronic', 'country',
-        'jazz', 'blues', 'reggae', 'folk', 'latin', 'metal',
-        'classical', 'funk', 'indie'
-    ], 
-    required: true 
     },
   
   target_type: { 
@@ -27,7 +21,6 @@ const ReviewSchema = new mongoose.Schema({
 
   spotify_id: { 
     type: String, 
-    required: true 
   },
 
   content: { 

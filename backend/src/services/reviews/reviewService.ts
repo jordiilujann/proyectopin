@@ -5,8 +5,13 @@ export async function createReview(reviewData: any) {
     const review = new Review(reviewData);
     await review.save();
     return review;
-  } catch (error) {
-    throw new Error(`Error al crear la reseña: ${error}`);
+  } catch (error: any) {
+    // Mostrar detalles específicos del error de validación
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map((err: any) => err.message);
+      throw new Error(`Error de validación: ${errors.join(', ')}`);
+    }
+    throw new Error(`Error al crear la reseña: ${error.message}`);
   }
 }
 

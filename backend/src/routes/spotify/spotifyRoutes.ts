@@ -2,8 +2,10 @@ import { Router } from "express";
 import {
   searchTracksCtrl,
   searchAlbumsCtrl,
+  searchArtistsCtrl,
   getTrackCtrl,
   getAlbumCtrl,
+  getArtistCtrl,
 } from "../../controllers/spotify/spotifyController.js";
 
 const spotifyRoutes = Router();
@@ -19,6 +21,12 @@ spotifyRoutes.get("/tracks/:id", getTrackCtrl);
 
 // /api/spotify/albums/:id
 spotifyRoutes.get("/albums/:id", getAlbumCtrl);
+
+// /api/spotify/artists?q=...
+spotifyRoutes.get("/artists", searchArtistsCtrl);
+
+// /api/spotify/artists/:id
+spotifyRoutes.get("/artists/:id", getArtistCtrl);
 
 export default spotifyRoutes;
 

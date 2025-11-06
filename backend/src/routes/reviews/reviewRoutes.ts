@@ -1,10 +1,11 @@
 import { Router } from "express";
 import * as reviewController from "../../controllers/reviews/reviewController.js";
+import { getCurrentUserFromSpotify } from "../../middlewares/spotifyAuthMiddleware.js";
 
 const router = Router();
 
 // Rutas básicas CRUD
-router.post("/", reviewController.createReview);
+router.post("/", getCurrentUserFromSpotify, reviewController.createReview);
 router.get("/", reviewController.getReviews);
 router.get("/:id", reviewController.getReviewById);
 router.put("/:id", reviewController.updateReview);

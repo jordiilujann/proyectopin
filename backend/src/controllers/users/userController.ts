@@ -67,3 +67,18 @@ export async function deleteUser(req: Request, res: Response) {
   }
 }
 
+export async function getCurrentUser(req: Request, res: Response) {
+  try {
+    const userId = req.headers['x-user-id'] || req.query.user_id;
+    
+    if (!userId || typeof userId !== 'string') {
+      return res.status(401).json({ error: "User ID no proporcionado en la sesión" });
+    }
+
+    const user = await userService.getUserById(userId);
+    res.json(user);
+  } catch (error: any) {
+    res.status(401).json({ error: "Usuario no autenticado o no encontrado" });
+  }
+}
+

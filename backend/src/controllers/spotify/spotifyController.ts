@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { searchTracks, searchAlbums, getAlbumById, getTrackById } from "../../services/spotify/spotifyService.js";
+import { searchTracks, searchAlbums, searchArtists, getAlbumById, getTrackById, getArtistById } from "../../services/spotify/spotifyService.js";
 
 export async function searchTracksCtrl(req: Request, res: Response) {
   const q = String(req.query.q || "").trim();
@@ -19,5 +19,15 @@ export async function getTrackCtrl(req: Request, res: Response) {
 
 export async function getAlbumCtrl(req: Request, res: Response) {
   res.json(await getAlbumById(req.params.id));
+}
+
+export async function searchArtistsCtrl(req: Request, res: Response) {
+  const q = String(req.query.q || "").trim();
+  if (!q) return res.status(400).json({ error: "Missing ?q=" });
+  res.json(await searchArtists(q));
+}
+
+export async function getArtistCtrl(req: Request, res: Response) {
+  res.json(await getArtistById(req.params.id));
 }
 

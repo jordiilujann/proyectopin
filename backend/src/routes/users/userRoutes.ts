@@ -12,6 +12,7 @@ router.delete("/:id", userController.deleteUser);
 
 // Rutas adicionales
 router.get("/spotify/:spotifyId", userController.getUserBySpotifyId);
+router.get("/me/current", userController.getCurrentUser);
 
 export default router;
 

@@ -10,62 +10,189 @@
     </button>
     <h1 class="text-xl font-bold text-center">Crear Reseña</h1>
     <button 
-      class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-base opacity-70" 
-      disabled>
+      class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-base"
+      [disabled]="!selectedItem || rating === 0"
+      (click)="submitReview()">
       Publicar
     </button>
   </header>
 
   <div class="max-w-md mx-auto">
+    <!-- Buscador -->
     <section class="mb-6">
-      <a [routerLink]="['/app/search']" class="block no-underline">
-        <div class="flex items-center p-3 bg-red-600 rounded-lg shadow-lg cursor-pointer
-                    hover:bg-red-700 active:bg-red-800 transition-all">
-          
-          <div class="w-16 h-16 bg-zinc-700 rounded-md flex items-center justify-center mr-4 flex-shrink-0">
-            <svg class="w-8 h-8 text-zinc-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2zm12-3c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"></path>
-            </svg>
-          </div>
-          
-          <div>
-            <h3 class="font-bold text-zinc-100 text-lg">Keonda</h3>
-            <p class="text-sm text-zinc-300">ABHIR • Single</p>
-          </div>
-        </div>
-      </a>
+      <h2 class="text-lg font-semibold text-zinc-100 mb-3">Buscar contenido</h2>
+      <div class="flex space-x-2">
+        <input 
+          type="text"
+          [(ngModel)]="searchQuery"
+          (keyup.enter)="search()"
+          class="flex-1 p-3 bg-zinc-800 text-zinc-100 border border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 placeholder-zinc-500"
+          placeholder="Buscar canciones, álbumes o artistas..."
+        />
+        <button 
+          (click)="search()"
+          class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
+          [disabled]="isLoading">
+          <svg *ngIf="isLoading" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          <svg *ngIf="!isLoading" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+        </button>
+      </div>
+      
+      <div *ngIf="error" class="mt-2 p-2 bg-red-600 text-white rounded text-sm">
+        {{ error }}
+      </div>
     </section>
 
+    <!-- Resultados de búsqueda -->
+    <div *ngIf="searchResults.tracks.length > 0 || searchResults.albums.length > 0 || searchResults.artists.length > 0" class="mb-6">
+      <h3 class="text-md font-semibold text-zinc-100 mb-3">Resultados de búsqueda</h3>
+      
+      <!-- Canciones -->
+      <div *ngIf="searchResults.tracks.length > 0" class="mb-4">
+        <h4 class="text-sm font-medium text-zinc-400 mb-2">Canciones</h4>
+        <div class="space-y-2">
+          <div 
+            *ngFor="let track of searchResults.tracks"
+            (click)="selectItem(track, 'track')"
+            class="flex items-center p-3 bg-zinc-800 rounded-lg cursor-pointer hover:bg-zinc-700 transition-colors">
+            <img 
+              *ngIf="track.coverUrl" 
+              [src]="track.coverUrl" 
+              class="w-12 h-12 rounded-md mr-3"
+              alt="Portada"
+            />
+            <div class="flex-1">
+              <h4 class="font-semibold text-zinc-100">{{ track.name }}</h4>
+              <p class="text-sm text-zinc-400">{{ getArtistNames(track.artists) }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Álbumes -->
+      <div *ngIf="searchResults.albums.length > 0" class="mb-4">
+        <h4 class="text-sm font-medium text-zinc-400 mb-2">Álbumes</h4>
+        <div class="space-y-2">
+          <div 
+            *ngFor="let album of searchResults.albums"
+            (click)="selectItem(album, 'album')"
+            class="flex items-center p-3 bg-zinc-800 rounded-lg cursor-pointer hover:bg-zinc-700 transition-colors">
+            <img 
+              *ngIf="album.coverUrl" 
+              [src]="album.coverUrl" 
+              class="w-12 h-12 rounded-md mr-3"
+              alt="Portada"
+            />
+            <div class="flex-1">
+              <h4 class="font-semibold text-zinc-100">{{ album.name }}</h4>
+              <p class="text-sm text-zinc-400">{{ getArtistNames(album.artists) }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Artistas -->
+      <div *ngIf="searchResults.artists.length > 0" class="mb-4">
+        <h4 class="text-sm font-medium text-zinc-400 mb-2">Artistas</h4>
+        <div class="space-y-2">
+          <div 
+            *ngFor="let artist of searchResults.artists"
+            (click)="selectItem(artist, 'artist')"
+            class="flex items-center p-3 bg-zinc-800 rounded-lg cursor-pointer hover:bg-zinc-700 transition-colors">
+            <img 
+              *ngIf="artist.images && artist.images.length > 0" 
+              [src]="artist.images[0].url" 
+              class="w-12 h-12 rounded-full mr-3"
+              alt="Artista"
+            />
+            <div class="flex-1">
+              <h4 class="font-semibold text-zinc-100">{{ artist.name }}</h4>
+              <p class="text-sm text-zinc-400">{{ artist.genres?.join(', ') || 'Artista' }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Item seleccionado -->
+    <section *ngIf="selectedItem" class="mb-6">
+      <h2 class="text-lg font-semibold text-zinc-100 mb-3">Contenido seleccionado</h2>
+      <div class="flex items-center p-3 bg-zinc-800 rounded-lg">
+        <img 
+          *ngIf="selectedItem.coverUrl" 
+          [src]="selectedItem.coverUrl" 
+          class="w-16 h-16 rounded-md mr-4"
+          alt="Portada"
+        />
+        <div class="flex-1">
+          <h3 class="font-bold text-zinc-100 text-lg">{{ selectedItem.name }}</h3>
+          <p class="text-sm text-zinc-300">
+            {{ selectedItem.type === 'track' ? 'Canción' : selectedItem.type === 'album' ? 'Álbum' : 'Artista' }}
+            <span *ngIf="selectedItem.artists"> • {{ getArtistNames(selectedItem.artists) }}</span>
+            <span *ngIf="selectedItem.genre"> • {{ selectedItem.genre }}</span>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Sistema de estrellas -->
     <section class="mb-6">
       <h2 class="text-lg font-semibold text-zinc-100 mb-3 text-center">Tu valoración</h2>
       
-      <div class="flex justify-center space-x-2">
-        <svg *ngFor="let i of [1,2,3,4]" class="w-10 h-10 text-yellow-400 cursor-pointer" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-        </svg>
-        <svg *ngFor="let i of [1]" class="w-10 h-10 text-zinc-600 cursor-pointer" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+      <div class="flex justify-center space-x-1">
+        <svg 
+          *ngFor="let star of [1,2,3,4,5]"
+          (click)="setRating(star)"
+          class="w-10 h-10 cursor-pointer transition-transform hover:scale-110"
+          [class.text-yellow-400]="star <= rating"
+          [class.text-zinc-600]="star > rating"
+          fill="currentColor" 
+          viewBox="0 0 20 20" 
+          xmlns="http://www.w3.org/2000/svg">
           <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
         </svg>
       </div>
-      <p class="text-center text-sm text-zinc-400 mt-2">Toca las estrellas para valorar</p>
+      <p class="text-center text-sm text-zinc-400 mt-2">
+        {{ rating === 0 ? 'Toca las estrellas para valorar' : 'Valoración: ' + rating + '/5' }}
+      </p>
     </section>
 
+    <!-- Formulario de reseña -->
     <section class="mb-6">
-      <h2 class="text-lg font-semibold text-zinc-100 mb-2">Título</h2> <input 
+      <h2 class="text-lg font-semibold text-zinc-100 mb-2">Título</h2> 
+      <input 
         type="text"
+        [(ngModel)]="title"
         class="w-full p-3 bg-zinc-800 text-zinc-100 border border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 placeholder-zinc-500 mb-4"
         placeholder="Añadir un título..."
       />
 
       <h2 class="text-lg font-semibold text-zinc-100 mb-2">Reseña</h2>
       <textarea 
+        [(ngModel)]="content"
         class="w-full h-40 p-3 bg-zinc-800 text-zinc-100 border border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 placeholder-zinc-500"
         placeholder="Añadir una reseña..."></textarea>
     </section>
 
-    <div class="fixed bottom-0 left-0 right-0 bg-zinc-800 p-4 border-t border-zinc-700
-                flex justify-center items-center md:hidden"> <p class="text-zinc-500 text-sm">Teclado simulado aquí...</p>
+    <!-- Información automática -->
+    <section *ngIf="selectedItem" class="mb-6 p-3 bg-zinc-800 rounded-lg">
+      <h3 class="text-sm font-medium text-zinc-400 mb-2">Información automática</h3>
+      <div class="grid grid-cols-2 gap-2 text-sm">
+        <div>
+          <span class="text-zinc-400">Tipo:</span>
+          <span class="text-zinc-100 ml-2">{{ selectedItem.type }}</span>
+        </div>
+        <div>
+          <span class="text-zinc-400">Género:</span>
+          <span class="text-zinc-100 ml-2">{{ selectedItem.genre || 'No disponible' }}</span>
+        </div>
       </div>
+    </section>
 
   </div>
 </div>

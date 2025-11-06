@@ -3,7 +3,19 @@ import * as reviewService from "../../services/reviews/reviewService.js";
 
 export async function createReview(req: Request, res: Response) {
   try {
-    const review = await reviewService.createReview(req.body);
+    // Obtener el usuario autenticado del middleware de Spotify
+    const currentUser = (req as any).currentUser;
+    if (!currentUser) {
+      return res.status(401).json({ error: "Usuario no autenticado" });
+    }
+    
+    // Crear la reseña con el ID del usuario autenticado
+    const reviewData = {
+      ...req.body,
+      user_id: currentUser._id || currentUser.id
+    };
+    
+    const review = await reviewService.createReview(reviewData);
     res.status(201).json(review);
   } catch (error: any) {
     res.status(400).json({ error: error.message || "Error al crear la reseña" });
