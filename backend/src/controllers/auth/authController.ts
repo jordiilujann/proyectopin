@@ -53,8 +53,16 @@ export async function getProfile(req: Request, res: Response) {
     const accessToken = authHeader.substring(7);
     const profile = await authService.getUserProfile(accessToken);
     return res.json(profile);
-  } catch (error) {
-    res.status(401).json({ error: "Invalid or expired token" });
+  } catch (error: any) {
+    // Si el token expiró, intentar renovarlo automáticamente
+    if (error.message?.includes("expired") || error.message?.includes("401")) {
+      return res.status(401).json({ 
+        error: "Token expired", 
+        code: "TOKEN_EXPIRED",
+        message: "El token de acceso ha expirado. Por favor, inicia sesión nuevamente."
+      });
+    }
+    res.status(401).json({ error: "Invalid token" });
   }
 }
 

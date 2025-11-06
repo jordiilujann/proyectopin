@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
@@ -15,7 +15,8 @@ export class ProfileComponent implements OnInit {
 
   constructor(
     private authService: AuthService,
-    private route: ActivatedRoute
+    private route: ActivatedRoute,
+    private router: Router
   ) {}
 
   ngOnInit() {
@@ -26,7 +27,12 @@ export class ProfileComponent implements OnInit {
           params['refresh_token'],
           params['user_id']
         );
-        window.history.replaceState({}, '', '/');
+        // Limpiar los query params manteniendo la ruta actual
+        this.router.navigate([], { 
+          relativeTo: this.route, 
+          queryParams: {}, 
+          replaceUrl: true 
+        });
         this.loadProfile();
       } else if (params['error']) {
         this.error = 'Error en la autenticación';
@@ -59,9 +65,9 @@ export class ProfileComponent implements OnInit {
         this.error = '';
       },
       error: () => {
-        // Si falla, el token probablemente expiró, redirigir a login
+        // Mantenerse en Profile y mostrar mensaje sin forzar login/redirect
         this.profile = null;
-        this.authService.login();
+        this.error = 'Sesión caducada o error al cargar perfil. Ve a Login para iniciar sesión.';
       }
     });
   }

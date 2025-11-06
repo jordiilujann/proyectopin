@@ -46,6 +46,30 @@ export class AuthService {
     return this.http.get(`${this.API_URL}/api/me`, { headers });
   }
 
+  // Método para verificar si el token está expirado basado en el error
+  isTokenExpiredError(error: any): boolean {
+    return error?.error?.code === 'TOKEN_EXPIRED' || 
+           error?.error?.error?.includes('expired') ||
+           error?.status === 401;
+  }
+
+  // Limpiar tokens expirados y redirigir al login
+  handleExpiredToken(): void {
+    this.logout().subscribe({
+      next: () => {
+        // Redirigir al login con mensaje de token expirado
+        window.location.href = '/login?error=token_expired';
+      },
+      error: () => {
+        // Si falla el logout, limpiar local storage y redirigir igualmente
+        localStorage.removeItem(this.ACCESS_TOKEN_KEY);
+        localStorage.removeItem(this.REFRESH_TOKEN_KEY);
+        localStorage.removeItem(this.USER_ID_KEY);
+        window.location.href = '/login?error=token_expired';
+      }
+    });
+  }
+
   isAuthenticated(): boolean {
     return !!this.getAccessToken();
   }

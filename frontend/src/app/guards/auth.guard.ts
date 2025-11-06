@@ -25,6 +25,7 @@ export const loginGuard: CanActivateFn = (route, state) => {
     return false;
   }
 
+  // Permitir ver la pantalla de login para que el usuario haga click
   return true;
 };
 

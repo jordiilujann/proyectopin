@@ -25,10 +25,16 @@ export class LoginComponent implements OnInit {
       const accessToken = params['access_token'];
       const refreshToken = params['refresh_token'];
       const error = params['error'];
+      const tokenExpired = params['token_expired'];
 
       if (error) {
         this.errorMessage = 'Error en la autenticación. Por favor, intenta de nuevo.';
         console.error('Error en autenticación:', error);
+        return;
+      }
+
+      if (tokenExpired) {
+        this.errorMessage = 'Tu sesión ha expirado. Por favor, inicia sesión nuevamente.';
         return;
       }
 

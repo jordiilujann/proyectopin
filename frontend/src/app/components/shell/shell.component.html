@@ -1,22 +1,10 @@
 <div class="min-h-screen flex flex-col">
-  <!-- Header con botón de logout -->
-  <div class="fixed top-0 left-0 right-0 border-b border-neutral-300 bg-white z-10">
-    <div class="max-w-md mx-auto flex justify-between items-center py-3 px-4">
-      <span class="font-bold text-lg">Spotifind</span>
-      <button 
-        (click)="onLogout()" 
-        class="px-3 py-1 text-sm border border-neutral-300 rounded hover:bg-neutral-100 cursor-pointer">
-        Cerrar sesión
-      </button>
-    </div>
-  </div>
-
-  <div class="flex-1 overflow-auto pb-16 pt-16">
+  <div class="flex-1 overflow-auto pb-24">
     <router-outlet></router-outlet>
   </div>
 
   <div class="fixed bottom-0 left-0 right-0 border-t border-neutral-300 bg-white">
-    <div class="max-w-md mx-auto flex justify-around items-center py-3">
+    <div class="mx-auto max-w-full md:max-w-4xl lg:max-w-5xl flex justify-around items-center py-3">
       
       <label>
         <span class="cursor-pointer text-2xl" [routerLink]="['/app/feed']" routerLinkActive="font-bold">🏠</span>
