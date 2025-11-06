@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, throwError } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -43,7 +44,38 @@ export class AuthService {
       'Authorization': `Bearer ${token}`
     });
 
-    return this.http.get(`${this.API_URL}/api/me`, { headers });
+    return this.http.get(`${this.API_URL}/api/me`, { headers }).pipe(
+      catchError((error) => {
+        if (this.isTokenExpiredError(error)) {
+          return this.refreshAccessToken().pipe(
+            switchMap((response: any) => {
+              this.saveTokens(response.access_token, response.refresh_token, response.user_id);
+              const newHeaders = new HttpHeaders({
+                'Authorization': `Bearer ${response.access_token}`
+              });
+              return this.http.get(`${this.API_URL}/api/me`, { headers: newHeaders });
+            }),
+            catchError((refreshError) => {
+              this.handleExpiredToken();
+              return throwError(() => refreshError);
+            })
+          );
+        }
+        return throwError(() => error);
+      })
+    );
+  }
+
+  // Método para refrescar el token de acceso usando el refresh token
+  refreshAccessToken(): Observable<any> {
+    const refreshToken = localStorage.getItem(this.REFRESH_TOKEN_KEY);
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+
+    return this.http.post(`${this.API_URL}/api/auth/refresh`, {
+      refresh_token: refreshToken
+    });
   }
 
   // Método para verificar si el token está expirado basado en el error

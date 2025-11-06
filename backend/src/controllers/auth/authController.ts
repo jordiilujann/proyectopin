@@ -74,3 +74,27 @@ export async function logout(_req: Request, res: Response) {
   }
 }
 
+export async function refreshToken(req: Request, res: Response) {
+  try {
+    const { refresh_token } = req.body;
+    
+    if (!refresh_token) {
+      return res.status(400).json({ error: "Refresh token is required" });
+    }
+
+    const tokenData = await authService.refreshAccessToken(refresh_token);
+    
+    res.json({
+      access_token: tokenData.access_token,
+      expires_in: tokenData.expires_in,
+      token_type: tokenData.token_type
+    });
+  } catch (error: any) {
+    console.error('❌ Error al refrescar el token:', error);
+    res.status(401).json({ 
+      error: "Failed to refresh token",
+      message: "El refresh token es inválido o ha expirado. Por favor, inicia sesión nuevamente."
+    });
+  }
+}
+
