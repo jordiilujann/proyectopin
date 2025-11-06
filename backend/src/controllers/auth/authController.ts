@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import * as authService from "../../services/auth/authService.js";
+import * as userService from "../../services/users/userService.js";
 
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN!;
 
@@ -21,7 +22,20 @@ export async function callback(req: Request, res: Response) {
     }
 
     const tokenData = await authService.exchangeCodeForTokens(code as string);
-    const redirectUrl = `${FRONTEND_ORIGIN}?access_token=${tokenData.access_token}&refresh_token=${tokenData.refresh_token}`;
+
+    // Obtener el perfil del usuario desde Spotify
+    const profile = await authService.getUserProfile(tokenData.access_token);
+
+    // Crear o devolver el usuario existente en la base de datos
+    const user = await userService.createUser({
+      spotify_id: profile.id,
+      email: profile.email,
+      country: profile.country,
+      name: profile.display_name,
+    });
+
+    const userId = (user as any)?._id?.toString?.() ?? (user as any)?.id ?? "";
+    const redirectUrl = `${FRONTEND_ORIGIN}?access_token=${tokenData.access_token}&refresh_token=${tokenData.refresh_token}${userId ? `&user_id=${encodeURIComponent(userId)}` : ""}`;
     res.redirect(redirectUrl);
   } catch (error) {
     res.redirect(`${FRONTEND_ORIGIN}?error=auth_failed`);
