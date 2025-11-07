@@ -1,148 +1,132 @@
-<div class="min-h-screen bg-gray-50 py-8">
+<div class="min-h-screen bg-white py-8">
   <div class="max-w-2xl mx-auto px-4">
     <!-- Header del feed -->
     <div class="mb-8 text-center">
-      <h1 class="text-3xl font-bold text-gray-800 mb-2">Mi Muro</h1>
-      <p class="text-gray-600">Descubre las últimas publicaciones de tu comunidad</p>
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Muro de Reseñas</h1>
+      <p class="text-gray-600">Descubre las últimas reseñas musicales de la comunidad</p>
     </div>
 
-    <!-- Tarjeta de crear publicación -->
-    <div class="bg-white rounded-lg shadow-md p-6 mb-6">
-      <div class="flex items-center space-x-4 mb-4">
-        <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
-          <span class="text-white font-bold text-lg">👤</span>
-        </div>
-        <input 
-          type="text" 
-          placeholder="¿Qué estás pensando?"
-          class="flex-1 border border-gray-300 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-      </div>
-      <div class="flex justify-between items-center">
-        <div class="flex space-x-4">
-          <button class="text-gray-500 hover:text-blue-500 flex items-center">
-            <span class="text-xl mr-1">📷</span>
-            <span class="text-sm">Foto</span>
-          </button>
-          <button class="text-gray-500 hover:text-blue-500 flex items-center">
-            <span class="text-xl mr-1">🎬</span>
-            <span class="text-sm">Video</span>
-          </button>
-        </div>
-        <button class="bg-blue-500 text-white px-6 py-2 rounded-full hover:bg-blue-600 transition-colors">
-          Publicar
-        </button>
-      </div>
-    </div>
-
-    <!-- Publicaciones del feed -->
+    <!-- Lista de reseñas -->
     <div class="space-y-6">
-      <!-- Publicación de ejemplo 1 -->
-      <div class="bg-white rounded-lg shadow-md p-6">
-        <div class="flex items-center space-x-4 mb-4">
-          <div class="w-10 h-10 bg-gradient-to-r from-blue-400 to-purple-500 rounded-full flex items-center justify-center">
-            <span class="text-white font-bold">A</span>
-          </div>
-          <div>
-            <h3 class="font-semibold text-gray-800">Ana Martínez</h3>
-            <p class="text-sm text-gray-500">Hace 2 horas</p>
-          </div>
-        </div>
-        
-        <p class="text-gray-700 mb-4">¡Acabo de terminar mi último proyecto! Fue una experiencia increíble aprendiendo nuevas tecnologías. 🚀</p>
-        
-        <div class="bg-gray-100 rounded-lg p-4 mb-4">
-          <img src="https://via.placeholder.com/500x300" alt="Proyecto" class="w-full h-48 object-cover rounded">
-        </div>
-        
-        <div class="flex items-center justify-between text-gray-500">
-          <div class="flex space-x-4">
-            <button class="flex items-center space-x-1 hover:text-blue-500">
-              <span class="text-xl">❤️</span>
-              <span>42</span>
-            </button>
-            <button class="flex items-center space-x-1 hover:text-blue-500">
-              <span class="text-xl">💬</span>
-              <span>8</span>
-            </button>
-          </div>
-          <button class="hover:text-blue-500">
-            <span class="text-xl">↗️</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Publicación de ejemplo 2 -->
-      <div class="bg-white rounded-lg shadow-md p-6">
-        <div class="flex items-center space-x-4 mb-4">
-          <div class="w-10 h-10 bg-gradient-to-r from-green-400 to-blue-500 rounded-full flex items-center justify-center">
-            <span class="text-white font-bold">C</span>
-          </div>
-          <div>
-            <h3 class="font-semibold text-gray-800">Carlos López</h3>
-            <p class="text-sm text-gray-500">Ayer a las 15:30</p>
-          </div>
-        </div>
-        
-        <p class="text-gray-700 mb-4">Compartiendo algunas reflexiones sobre el futuro de la tecnología y cómo está transformando nuestras vidas. ¿Qué opinan?</p>
-        
-        <div class="flex items-center justify-between text-gray-500">
-          <div class="flex space-x-4">
-            <button class="flex items-center space-x-1 hover:text-blue-500">
-              <span class="text-xl">❤️</span>
-              <span>28</span>
-            </button>
-            <button class="flex items-center space-x-1 hover:text-blue-500">
-              <span class="text-xl">💬</span>
-              <span>12</span>
-            </button>
-          </div>
-          <button class="hover:text-blue-500">
-            <span class="text-xl">↗️</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- Publicación de ejemplo 3 -->
-      <div class="bg-white rounded-lg shadow-md p-6">
-        <div class="flex items-center space-x-4 mb-4">
-          <div class="w-10 h-10 bg-gradient-to-r from-red-400 to-pink-500 rounded-full flex items-center justify-center">
-            <span class="text-white font-bold">M</span>
-          </div>
-          <div>
-            <h3 class="font-semibold text-gray-800">María González</h3>
-            <p class="text-sm text-gray-500">Hace 3 días</p>
-          </div>
-        </div>
-        
-        <p class="text-gray-700 mb-4">¡Nuevo tutorial disponible! Aprendamos juntos a crear aplicaciones modernas con las últimas tecnologías. 💻</p>
-        
-        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-          <div class="flex items-center space-x-3">
-            <span class="text-2xl text-blue-600">📚</span>
+      @for (review of reviews; track review._id) {
+        <!-- Tarjeta de reseña -->
+        <div class="bg-zinc-800 rounded-xl shadow-lg p-6 border border-zinc-700">
+          <!-- Header de la reseña - Usuario -->
+          <div class="flex items-center space-x-4 mb-4">
+            <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+              <span class="text-white font-bold text-sm">{{ review.user_name?.charAt(0) || 'U' }}</span>
+            </div>
             <div>
-              <h4 class="font-semibold text-blue-800">Tutorial: Desarrollo Web Moderno</h4>
-              <p class="text-sm text-blue-600">Aprende las mejores prácticas y herramientas actuales</p>
+              <h3 class="font-semibold text-white">{{ review.user_name || 'Usuario' }}</h3>
+              <p class="text-sm text-zinc-400">{{ review.created_at | date:'medium' }}</p>
             </div>
           </div>
-        </div>
-        
-        <div class="flex items-center justify-between text-gray-500">
-          <div class="flex space-x-4">
-            <button class="flex items-center space-x-1 hover:text-blue-500">
-              <span class="text-xl">❤️</span>
-              <span>56</span>
-            </button>
-            <button class="flex items-center space-x-1 hover:text-blue-500">
-              <span class="text-xl">💬</span>
-              <span>23</span>
+
+          <!-- Información del item musical -->
+          <div class="flex items-center space-x-4 mb-4 p-3 bg-zinc-700 rounded-lg">
+            <!-- Carátula de Spotify o icono por defecto -->
+            @if (review.item_cover_url) {
+              <img 
+                [src]="review.item_cover_url" 
+                alt="Carátula" 
+                class="w-16 h-16 rounded-lg object-cover"
+                onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
+              >
+            }
+            <div 
+              class="w-16 h-16 bg-zinc-600 rounded-lg flex items-center justify-center"
+              [class.hidden]="review.item_cover_url"
+            >
+              <span class="text-2xl">{{ getItemTypeIcon(review.target_type) }}</span>
+            </div>
+            <div class="flex-1">
+              <h4 class="font-semibold text-white text-lg">{{ review.item_name || review.spotify_id }}</h4>
+              <!-- Artistas -->
+              @if (review.item_artists && review.item_artists.length > 0) {
+                <p class="text-sm text-zinc-400">
+                  {{ review.item_artists.join(', ') }}
+                </p>
+              }
+              <p class="text-sm text-zinc-500">{{ review.target_type | titlecase }}</p>
+              @if (review.genre) {
+                <p class="text-xs text-zinc-400">{{ review.genre }}</p>
+              }
+            </div>
+          </div>
+
+          <!-- Rating con estrellas -->
+          <div class="mb-4">
+            <div class="flex items-center space-x-1">
+              @for (star of getStarRating(review.rating); track $index) {
+                <span class="text-xl {{ star === '★' ? 'text-yellow-400' : 'text-zinc-500' }}">
+                  {{ star }}
+                </span>
+              }
+              <span class="text-zinc-400 ml-2">{{ review.rating }}/5</span>
+            </div>
+          </div>
+
+          <!-- Título de la reseña -->
+          <div class="mb-3">
+            <h4 class="font-semibold text-white text-xl">{{ review.title }}</h4>
+          </div>
+
+          <!-- Contenido de la reseña -->
+          <div class="mb-4">
+            <p class="text-zinc-300 leading-relaxed text-base">{{ review.content }}</p>
+          </div>
+
+          <!-- Acciones - Likes y Comentarios -->
+          <div class="flex items-center justify-between pt-4 border-t border-zinc-700">
+            <div class="flex items-center space-x-6">
+              <!-- Botón Like -->
+              <button 
+                (click)="likeReview(review)"
+                class="flex items-center space-x-2 text-zinc-400 hover:text-red-500 transition-colors"
+              >
+                <span class="text-xl">❤️</span>
+                <span class="font-medium">{{ review.likes }}</span>
+              </button>
+
+              <!-- Botón Comentar (no funcional) -->
+              <button 
+                class="flex items-center space-x-2 text-zinc-400 hover:text-blue-500 transition-colors"
+                disabled
+              >
+                <span class="text-xl">💬</span>
+                <span class="font-medium">0</span>
+              </button>
+            </div>
+
+            <!-- Compartir -->
+            <button class="text-zinc-400 hover:text-green-500 transition-colors">
+              <span class="text-xl">↗️</span>
             </button>
           </div>
-          <button class="hover:text-blue-500">
-            <span class="text-xl">↗️</span>
-          </button>
         </div>
-      </div>
+      }
+
+      <!-- Loading indicator -->
+      @if (loading) {
+        <div class="text-center py-8">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
+          <p class="text-zinc-400 mt-2">Cargando reseñas...</p>
+        </div>
+      }
+
+      <!-- No hay reseñas -->
+      @if (reviews.length === 0 && !loading) {
+        <div class="text-center py-8">
+          <p class="text-zinc-400">No hay reseñas para mostrar</p>
+        </div>
+      }
+
+      <!-- Error message -->
+      @if (error) {
+        <div class="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
+          <p class="text-red-400">{{ error }}</p>
+        </div>
+      }
     </div>
   </div>
 </div>

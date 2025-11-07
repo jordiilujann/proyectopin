@@ -1,29 +1,29 @@
-<div class="min-h-screen flex flex-col">
+<div class="min-h-screen flex flex-col bg-zinc-900">
   <div class="flex-1 overflow-auto pb-24">
     <router-outlet></router-outlet>
   </div>
 
-  <div class="fixed bottom-0 left-0 right-0 border-t border-neutral-300 bg-white">
+  <div class="fixed bottom-0 left-0 right-0 border-t border-zinc-700 bg-zinc-800">
     <div class="mx-auto max-w-full md:max-w-4xl lg:max-w-5xl flex justify-around items-center py-3">
       
       <label>
-        <span class="cursor-pointer text-2xl" [routerLink]="['/app/feed']" routerLinkActive="font-bold">🏠</span>
+        <span class="cursor-pointer text-2xl text-zinc-400 hover:text-white transition-colors" [routerLink]="['/app/feed']" routerLinkActive="text-white">🏠</span>
       </label>
       
       <label>
-        <span class="cursor-pointer text-2xl" [routerLink]="['/app/search']" routerLinkActive="font-bold">🔎</span>
+        <span class="cursor-pointer text-2xl text-zinc-400 hover:text-white transition-colors" [routerLink]="['/app/search']" routerLinkActive="text-white">🔎</span>
       </label>
       
       <label>
         <span 
-          class="cursor-pointer text-4xl font-semibold text-blue-500 active:text-blue-700" 
-          [routerLink]="['/review']">
+          class="cursor-pointer text-4xl font-semibold bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full w-12 h-12 flex items-center justify-center hover:from-blue-600 hover:to-purple-700 transition-colors" 
+          [routerLink]="['/app/review']">
           +
         </span>
       </label>
       
       <label>
-        <span class="cursor-pointer text-2xl" [routerLink]="['/app/profile']" routerLinkActive="font-bold">👤</span>
+        <span class="cursor-pointer text-2xl text-zinc-400 hover:text-white transition-colors" [routerLink]="['/app/profile']" routerLinkActive="text-white">👤</span>
       </label>
 
     </div>

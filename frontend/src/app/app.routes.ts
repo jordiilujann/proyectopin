@@ -26,13 +26,8 @@ export const routes: Routes = [
       { path: 'feed',    component: FeedComponent },
       { path: 'search',  component: SearchComponent },
       { path: 'profile', component: ProfileComponent },
+      { path: 'review',  component: ReviewComponent },
     ],
-  },
-  
-  { 
-    path: 'review', 
-    component: ReviewComponent,
-    canActivate: [authGuard] // Proteger la ruta de review también
   },
   
   { path: '**', redirectTo: 'login' },

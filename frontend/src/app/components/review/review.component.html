@@ -3,18 +3,13 @@
   <header class="flex justify-between items-center mb-8">
     <button 
       class="text-zinc-400 hover:text-zinc-200 transition-colors text-xl" 
-      [routerLink]="['/app/feed']">
+      [routerLink]="['/app/reviews']">
       <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
         <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
       </svg>
     </button>
     <h1 class="text-xl font-bold text-center">Crear Reseña</h1>
-    <button 
-      class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors text-base"
-      [disabled]="!selectedItem || rating === 0"
-      (click)="submitReview()">
-      Publicar
-    </button>
+    <div class="w-24"></div> <!-- Espaciador para mantener la alineación -->
   </header>
 
   <div class="max-w-md mx-auto">
@@ -193,6 +188,16 @@
         </div>
       </div>
     </section>
+
+    <!-- Botón Publicar -->
+    <div class="flex justify-center mb-6">
+      <button 
+        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors text-base w-full max-w-xs"
+        [disabled]="!selectedItem || rating === 0"
+        (click)="submitReview()">
+        Publicar
+      </button>
+    </div>
 
   </div>
 </div>

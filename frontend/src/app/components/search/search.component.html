@@ -1,20 +1,20 @@
-<div class="min-h-screen bg-gray-50 py-8">
+<div class="min-h-screen bg-white py-8">
   <div class="max-w-2xl mx-auto px-4">
     <!-- Header de búsqueda -->
     <div class="mb-8 text-center">
-      <h1 class="text-3xl font-bold text-gray-800 mb-4">Buscar</h1>
+      <h1 class="text-3xl font-bold text-gray-900 mb-4">Buscar</h1>
       
       <!-- Barra de búsqueda -->
       <div class="relative max-w-md mx-auto">
         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <span class="text-gray-400 text-xl">🔍</span>
+          <span class="text-zinc-400 text-xl">🔍</span>
         </div>
         <input 
           type="text" 
           [(ngModel)]="searchQuery"
           placeholder="{{ activeTab === 'spotify' ? 'Buscar canciones...' : 'Buscar usuarios...' }}"
           (keyup.enter)="search()"
-          class="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          class="w-full pl-10 pr-4 py-3 bg-zinc-800 border border-zinc-600 text-zinc-100 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-zinc-400"
         >
         <div class="absolute inset-y-0 right-0 pr-3 flex items-center">
           <button 
@@ -27,24 +27,24 @@
     </div>
 
     <!-- Tabs de búsqueda -->
-    <div class="bg-white rounded-lg shadow-md p-4 mb-6">
-      <h2 class="font-semibold text-gray-700 mb-3">Buscar en:</h2>
+    <div class="bg-zinc-800 rounded-xl border border-zinc-600 p-4 mb-6">
+      <h2 class="font-semibold text-zinc-200 mb-3">Buscar en:</h2>
       <div class="flex flex-wrap gap-3">
         <button 
-          [class.bg-blue-100]="activeTab === 'spotify'"
-          [class.text-blue-700]="activeTab === 'spotify'"
-          [class.bg-gray-100]="activeTab !== 'spotify'"
-          [class.text-gray-700]="activeTab !== 'spotify'"
-          class="px-4 py-2 rounded-full text-sm font-medium hover:bg-blue-200 transition-colors"
+          [class.bg-blue-500]="activeTab === 'spotify'"
+          [class.text-zinc-100]="activeTab === 'spotify'"
+          [class.bg-zinc-700]="activeTab !== 'spotify'"
+          [class.text-zinc-300]="activeTab !== 'spotify'"
+          class="px-4 py-2 rounded-full text-sm font-medium hover:bg-zinc-600 transition-colors"
           (click)="setActiveTab('spotify')">
           🎵 Canciones
         </button>
         <button 
-          [class.bg-blue-100]="activeTab === 'users'"
-          [class.text-blue-700]="activeTab === 'users'"
-          [class.bg-gray-100]="activeTab !== 'users'"
-          [class.text-gray-700]="activeTab !== 'users'"
-          class="px-4 py-2 rounded-full text-sm font-medium hover:bg-blue-200 transition-colors"
+          [class.bg-blue-500]="activeTab === 'users'"
+          [class.text-zinc-100]="activeTab === 'users'"
+          [class.bg-zinc-700]="activeTab !== 'users'"
+          [class.text-zinc-300]="activeTab !== 'users'"
+          class="px-4 py-2 rounded-full text-sm font-medium hover:bg-zinc-600 transition-colors"
           (click)="setActiveTab('users')">
           👥 Usuarios
         </button>
@@ -53,22 +53,22 @@
 
     <!-- Resultados de búsqueda -->
     <div class="space-y-4">
-      <!-- Loading state -->
-      <div *ngIf="isLoading" class="text-center py-8">
+      <!-- Loading State -->
+      <div *ngIf="isLoading" class="text-center py-12">
         <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
-        <p class="text-gray-600 mt-2">Buscando...</p>
+        <p class="mt-4 text-zinc-400">Buscando...</p>
       </div>
 
-      <!-- Error state -->
-      <div *ngIf="error && !isLoading" class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
+      <!-- Error State -->
+      <div *ngIf="error && !isLoading" class="bg-red-900 border border-red-700 text-red-200 px-4 py-3 rounded mb-6">
         {{ error }}
       </div>
 
       <!-- Resultados de Spotify -->
       <div *ngIf="activeTab === 'spotify' && spotifyResults.length > 0 && !isLoading">
-        <h2 class="text-xl font-semibold text-gray-800 mb-4">Canciones encontradas</h2>
+        <h2 class="text-xl font-semibold text-zinc-600 mb-4">Canciones encontradas</h2>
         <div class="space-y-3">
-          <div *ngFor="let track of spotifyResults" class="bg-white rounded-lg shadow-md p-4">
+          <div *ngFor="let track of spotifyResults" class="bg-zinc-800 rounded-xl border border-zinc-700 p-4">
             <div class="flex items-center space-x-4">
               <img 
                 *ngIf="track.coverUrl" 
@@ -76,16 +76,16 @@
                 [alt]="track.name"
                 class="w-16 h-16 rounded-md object-cover">
               <div class="flex-1">
-                <h3 class="font-semibold text-gray-800">{{ track.name }}</h3>
-                <p class="text-sm text-gray-500">{{ getArtistNames(track.artists) }}</p>
-                <p class="text-sm text-gray-400">{{ track.album.name }}</p>
+                <h3 class="font-semibold text-zinc-100">{{ track.name }}</h3>
+                <p class="text-sm text-zinc-400">{{ getArtistNames(track.artists) }}</p>
+                <p class="text-sm text-zinc-500">{{ track.album.name }}</p>
               </div>
               <div class="text-right">
-                <p class="text-sm text-gray-500">{{ track.popularity }}% popularidad</p>
+                <p class="text-sm text-zinc-400">{{ track.popularity }}% popularidad</p>
                 <a 
                   [href]="track.externalUrl" 
                   target="_blank" 
-                  class="text-blue-500 hover:text-blue-700 text-sm">
+                  class="text-blue-400 hover:text-blue-300 text-sm transition-colors">
                   Ver en Spotify
                 </a>
               </div>
@@ -96,19 +96,19 @@
 
       <!-- Resultados de Usuarios -->
       <div *ngIf="activeTab === 'users' && userResults.length > 0 && !isLoading">
-        <h2 class="text-xl font-semibold text-gray-800 mb-4">Usuarios encontrados</h2>
+        <h2 class="text-xl font-semibold text-zinc-600 mb-4">Usuarios encontrados</h2>
         <div class="space-y-3">
-          <div *ngFor="let user of userResults" class="bg-white rounded-lg shadow-md p-4">
+          <div *ngFor="let user of userResults" class="bg-zinc-800 rounded-xl border border-zinc-700 p-4">
             <div class="flex items-center space-x-4">
-              <div class="w-12 h-12 bg-gradient-to-r from-purple-400 to-pink-500 rounded-full flex items-center justify-center">
-                <span class="text-white font-bold">{{ user.name.charAt(0) }}</span>
+              <div class="w-12 h-12 bg-gradient-to-r from-blue-600 to-purple-700 rounded-full flex items-center justify-center">
+                <span class="text-zinc-100 font-bold">{{ user.name?.charAt(0) || 'U' }}</span>
               </div>
               <div class="flex-1">
-                <h3 class="font-semibold text-gray-800">{{ user.name }}</h3>
-                <p class="text-sm text-gray-500">{{ user.email }}</p>
-                <p class="text-sm text-gray-400">{{ user.country }} · {{ user.premium ? 'Premium' : 'Free' }}</p>
+                <h3 class="font-semibold text-zinc-100">{{ user.name || 'Usuario' }}</h3>
+                <p class="text-sm text-zinc-400">{{ user.email }}</p>
+                <p class="text-sm text-zinc-500">{{ user.country || 'País no especificado' }} · {{ user.premium ? 'Premium' : 'Básico' }}</p>
               </div>
-              <button class="bg-blue-500 text-white px-4 py-1 rounded-full text-sm hover:bg-blue-600 transition-colors">
+              <button class="bg-gradient-to-r from-blue-600 to-purple-700 text-zinc-100 px-4 py-1 rounded-full text-sm hover:from-blue-700 hover:to-purple-800 transition-colors">
                 Seguir
               </button>
             </div>
@@ -116,31 +116,8 @@
         </div>
       </div>
 
-      <!-- No results -->
-      <div *ngIf="((activeTab === 'spotify' && spotifyResults.length === 0) || (activeTab === 'users' && userResults.length === 0)) && !isLoading && !error" class="text-center py-8">
-        <p class="text-gray-500">
-          {{ activeTab === 'spotify' ? 'No se encontraron canciones. Intenta con otra búsqueda.' : 'No se encontraron usuarios. Intenta con otra búsqueda.' }}
-        </p>
+      <!-- No Results -->
+      <div *ngIf="!isLoading && !error && ((activeTab === 'spotify' && spotifyResults.length === 0) || (activeTab === 'users' && userResults.length === 0))" class="text-center py-12">
+        <p class="text-zinc-400">No se encontraron resultados para "{{ searchQuery }}"</p>
       </div>
     </div>
-
-    <!-- Sugerencias de búsqueda -->
-    <div class="mt-8">
-      <h3 class="text-lg font-semibold text-gray-800 mb-4">Sugerencias populares</h3>
-      <div class="grid grid-cols-2 gap-3">
-        <button class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200 transition-colors">
-          #angular
-        </button>
-        <button class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200 transition-colors">
-          #react
-        </button>
-        <button class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200 transition-colors">
-          #javascript
-        </button>
-        <button class="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm hover:bg-gray-200 transition-colors">
-          #webdev
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
