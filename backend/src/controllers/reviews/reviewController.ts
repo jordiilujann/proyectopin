@@ -1,5 +1,8 @@
 import { Request, Response } from "express";
 import * as reviewService from "../../services/reviews/reviewService.js";
+import { getUserBySpotifyId } from "../../services/users/userService.js";
+import { getReviewsByUserId } from "../../services/reviews/reviewService.js";
+
 
 export async function createReview(req: Request, res: Response) {
   try {
@@ -98,3 +101,65 @@ export async function getReviewsBySpotifyId(req: Request, res: Response) {
   }
 }
 
+// GET /api/reviews/me
+// Usa el access token de Spotify para encontrar el usuario en tu BDD
+// y devuelve las reseñas cuyo user_id coincide con su _id.
+export async function getMyReviews(req: any, res: any) {
+  try {
+    const authHeader =
+      req.header("authorization") || req.header("Authorization");
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res
+        .status(401)
+        .json({ error: "Authorization: Bearer <spotify_token> required" });
+    }
+
+    const spotifyToken = authHeader.slice("Bearer ".length).trim();
+
+    // 1) Obtener perfil de Spotify del usuario autenticado
+    const meRes = await fetch("https://api.spotify.com/v1/me", {
+      headers: { Authorization: `Bearer ${spotifyToken}` },
+    });
+
+    if (!meRes.ok) {
+      const txt = await meRes.text();
+      console.error("Spotify /me failed:", meRes.status, txt);
+      return res.status(401).json({ error: "Invalid Spotify token" });
+    }
+
+    const me = await meRes.json();
+    const spotifyId = me?.id;
+    if (!spotifyId) {
+      return res
+        .status(400)
+        .json({ error: "Could not read Spotify user id from token" });
+    }
+
+    // 2) Buscar al usuario interno por spotify_id
+    let user;
+    try {
+      user = await getUserBySpotifyId(spotifyId);
+    } catch {
+      // getUserBySpotifyId lanza si no existe -> tratamos como sin reseñas
+      return res.json([]);
+    }
+
+    if (!user?._id) {
+      return res.json([]);
+    }
+
+    const userId = String(user._id);
+
+    // 3) Obtener reseñas de ese user_id
+    const reviews = await getReviewsByUserId(userId);
+
+    // 4) Responder directamente con el array de reseñas
+    return res.json(reviews);
+  } catch (err: any) {
+    console.error("[getMyReviews] error:", err?.message || err);
+    return res
+      .status(500)
+      .json({ error: "Error al obtener reseñas del usuario" });
+  }
+}

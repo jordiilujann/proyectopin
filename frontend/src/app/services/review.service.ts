@@ -87,4 +87,9 @@ export class ReviewService {
       { headers }
     );
   }
+    getMyReviews(): Observable<Review[]> {
+    const headers = this.getHeaders();
+    return this.http.get<Review[]>(`${this.API_BASE}/api/reviews/me`, { headers });
+  }
+
 }

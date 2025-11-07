@@ -6,14 +6,15 @@ const router = Router();
 
 // Rutas básicas CRUD
 router.post("/", getCurrentUserFromSpotify, reviewController.createReview);
+
+// ⚠️ PONEMOS /me ANTES QUE /:id
+router.get("/me", reviewController.getMyReviews);
+
 router.get("/", reviewController.getReviews);
+router.get("/user/:userId", reviewController.getReviewsByUser);
+router.get("/spotify/:spotifyId", reviewController.getReviewsBySpotifyId);
 router.get("/:id", reviewController.getReviewById);
 router.put("/:id", reviewController.updateReview);
 router.delete("/:id", reviewController.deleteReview);
 
-// Rutas adicionales
-router.get("/user/:userId", reviewController.getReviewsByUser);
-router.get("/spotify/:spotifyId", reviewController.getReviewsBySpotifyId);
-
 export default router;
-
