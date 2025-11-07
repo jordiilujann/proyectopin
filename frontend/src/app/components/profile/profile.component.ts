@@ -194,6 +194,32 @@ export class ProfileComponent implements OnInit {
     return stars;
   }
 
+    // -------- UI helpers (header) --------
+  get avatarUrl(): string | null {
+    // Prioriza avatar propio si existe en tu modelo de usuario
+    if (this.profile?.avatar_url) {
+      return this.profile.avatar_url;
+    }
+    // Si no, usa la foto de Spotify
+    if (this.profile?.images?.length) {
+      return this.primaryImage(this.profile.images);
+    }
+    return null;
+  }
+
+  get displayName(): string {
+    return (
+      this.profile?.display_name ||
+      this.profile?.name ||
+      'Usuario Spotify'
+    );
+  }
+
+  get followerCount(): number {
+    return this.profile?.followers?.total || 0;
+  }
+
+
 
   // -----------------------------
   // BLOQUES MÚSICA (pueden fallar 403 si faltan scopes; no rompen nada)
