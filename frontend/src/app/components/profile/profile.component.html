@@ -113,24 +113,99 @@
     </section>
 
     <!-- REVIEWS -->
-    <section *ngIf="tab==='reviews'">
+        <!-- REVIEWS -->
+    <section *ngIf="tab === 'reviews'">
       <div class="bg-zinc-800 rounded-xl shadow-sm border border-zinc-700">
         <div class="px-5 py-4">
           <h3 class="font-semibold text-zinc-100">Tus reseñas</h3>
+          <p class="text-xs text-zinc-400">Solo se muestran las reseñas creadas por ti.</p>
         </div>
-        <div class="px-5 pb-5 grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <div *ngFor="let r of reviews" class="group">
-            <div class="rounded-lg overflow-hidden shadow-sm border border-zinc-600">
-              <img [src]="r.album_image" class="w-full aspect-square object-cover group-hover:opacity-90 transition" alt="">
+
+        <div class="px-5 pb-5 space-y-4">
+          <!-- Tarjeta de reseña (igual estilo que feed, pero solo tuyas) -->
+          <div *ngFor="let review of reviews" class="bg-zinc-900 rounded-xl p-4 border border-zinc-700">
+            <!-- Header con fecha -->
+            <div class="flex items-center space-x-3 mb-3">
+              <div class="w-9 h-9 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                <span class="text-white text-xs font-bold">
+                  {{ (profile?.display_name || review.user_name || 'U').charAt(0) }}
+                </span>
+              </div>
+              <div>
+                <h3 class="text-sm font-semibold text-white">
+                  {{ profile?.display_name || review.user_name || 'Tú' }}
+                </h3>
+                <p class="text-[10px] text-zinc-400">
+                  {{ review.created_at | date:'medium' }}
+                </p>
+              </div>
             </div>
-            <div class="mt-2 text-sm text-zinc-200 truncate">{{ r.title || r.album_title }}</div>
+
+            <!-- Info del item musical -->
+            <div class="flex items-center space-x-4 mb-3 p-3 bg-zinc-800 rounded-lg">
+              <!-- Carátula o icono -->
+              <ng-container *ngIf="review.item_cover_url; else noCover">
+                <img
+                  [src]="review.item_cover_url"
+                  alt="Carátula"
+                  class="w-14 h-14 rounded-lg object-cover"
+                />
+              </ng-container>
+              <ng-template #noCover>
+                <div class="w-14 h-14 bg-zinc-700 rounded-lg flex items-center justify-center text-2xl">
+                  🎵
+                </div>
+              </ng-template>
+
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-semibold text-white truncate">
+                  {{ review.item_name || review.title || review.spotify_id }}
+                </h4>
+                <p *ngIf="review.item_artists?.length"
+                   class="text-[10px] text-zinc-400 truncate">
+                  {{ review.item_artists.join(', ') }}
+                </p>
+                <p class="text-[10px] text-zinc-500">
+                  {{ review.target_type | titlecase }}
+                  <span *ngIf="review.genre"> · {{ review.genre }}</span>
+                </p>
+              </div>
+            </div>
+
+            <!-- Rating -->
+            <div class="flex items-center mb-2">
+              <ng-container *ngFor="let star of getStarRating(review.rating)">
+                <span
+                  class="text-lg"
+                  [class.text-yellow-400]="star === '★'"
+                  [class.text-zinc-600]="star === '☆'">
+                  {{ star }}
+                </span>
+              </ng-container>
+              <span class="ml-2 text-xs text-zinc-400">
+                {{ review.rating }}/5
+              </span>
+            </div>
+
+            <!-- Título y contenido -->
+            <div *ngIf="review.title" class="mb-1">
+              <h5 class="text-sm font-semibold text-white">
+                {{ review.title }}
+              </h5>
+            </div>
+            <p class="text-xs text-zinc-300 leading-snug whitespace-pre-line">
+              {{ review.content }}
+            </p>
           </div>
-          <div *ngIf="!reviews.length" class="col-span-full text-zinc-400 text-sm">
-            Aún no tienes reseñas.
+
+          <!-- Si no hay reseñas -->
+          <div *ngIf="!reviews.length" class="text-zinc-400 text-sm">
+            Aún no tienes reseñas. ¡Ve al botón "+" y crea tu primera!
           </div>
         </div>
       </div>
     </section>
+
 
     <!-- MÚSICA (Playlists + Recientes) -->
     <section *ngIf="tab==='music'" class="space-y-6">

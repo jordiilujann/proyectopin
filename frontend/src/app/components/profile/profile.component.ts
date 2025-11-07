@@ -23,10 +23,10 @@ export class ProfileComponent implements OnInit {
   // ---- Tabs
   tab: Tab = 'overview';
 
-  // ---- Datos backend (tus reseñas)
+  // ---- Tus reseñas
   reviews: any[] = [];
 
-  // ---- Datos Spotify
+  // ---- Datos Spotify (overview / música)
   topArtists: any[] = [];
   topTracks: any[] = [];
   playlists: any[] = [];
@@ -40,8 +40,10 @@ export class ProfileComponent implements OnInit {
     private router: Router
   ) {}
 
+  // -----------------------------
+  // INIT
+  // -----------------------------
   ngOnInit(): void {
-    // 1) Si venimos del login de Spotify con tokens en la URL
     this.route.queryParams.subscribe(params => {
       const access = params['access_token'];
       const refresh = params['refresh_token'];
@@ -50,7 +52,7 @@ export class ProfileComponent implements OnInit {
       if (access && refresh) {
         this.auth.saveTokens(access, refresh, userId);
 
-        // Limpiar los query params
+        // limpiamos la URL
         this.router.navigate([], {
           relativeTo: this.route,
           queryParams: {},
@@ -58,7 +60,6 @@ export class ProfileComponent implements OnInit {
         });
       }
 
-      // 2) Siempre que termine esto, inicializamos el perfil
       this.initProfile();
     });
   }
@@ -87,7 +88,10 @@ export class ProfileComponent implements OnInit {
   }
 
   // -----------------------------
-  // Reseñas del usuario (backend)
+  // TUS RESEÑAS (con info Spotify)
+  // -----------------------------
+    // -----------------------------
+  // TUS RESEÑAS (igual estilo que feed)
   // -----------------------------
   private loadReviews(): void {
     const userId = this.auth.getUserId();
@@ -98,26 +102,83 @@ export class ProfileComponent implements OnInit {
       return;
     }
 
-    this.reviewService.getReviews(1, 200).subscribe({
-      next: (response: any) => {
-        const all: any[] = Array.isArray(response)
-          ? response
-          : (response?.reviews ?? []);
+    // Usamos la ruta específica /api/reviews/user/:userId
+    this.reviewService.getReviewsByUser(userId).subscribe({
+      next: (userReviews: any[]) => {
+        if (!userReviews || !userReviews.length) {
+          this.reviews = [];
+          console.log('[Profile] userId:', userId, 'sin reseñas');
+          return;
+        }
 
-        const mine = all.filter((r: any) => r.user_id === userId);
+        const enriched: any[] = new Array(userReviews.length);
+        let done = 0;
 
-        this.reviews = mine.map((r: any) => ({
-          ...r,
-          title: r.title || r.album_title || r.track_title || 'Reseña',
-          album_image:
-            r.item_cover_url ||
-            r.album_image ||
-            r.coverUrl ||
-            r.image ||
-            null,
-        }));
+        userReviews.forEach((review, index) => {
+          this.reviewService
+            .getSpotifyItemInfo(review.spotify_id, review.target_type)
+            .subscribe({
+              next: (spotifyInfo: any) => {
+                const itemName =
+                  spotifyInfo?.name ||
+                  review.item_name ||
+                  review.title ||
+                  review.spotify_id;
 
-        console.log('[Profile] userId:', userId, 'reseñas encontradas:', this.reviews.length);
+                const cover =
+                  spotifyInfo?.coverUrl ||
+                  spotifyInfo?.album?.images?.[0]?.url ||
+                  spotifyInfo?.images?.[0]?.url ||
+                  review.item_cover_url ||
+                  null;
+
+                const artists = spotifyInfo?.artists
+                  ? spotifyInfo.artists.map((a: any) => a.name)
+                  : review.item_artists || [];
+
+                enriched[index] = {
+                  ...review,
+                  item_name: itemName,
+                  item_cover_url: cover,
+                  item_artists: artists,
+                  // campos que usa el HTML
+                  title: review.title || itemName,
+                };
+
+                done++;
+                if (done === userReviews.length) {
+                  this.reviews = enriched;
+                  console.log(
+                    '[Profile] userId:',
+                    userId,
+                    'reseñas encontradas:',
+                    this.reviews.length
+                  );
+                }
+              },
+              error: () => {
+                // Si falla Spotify, al menos mostramos lo que tenemos
+                enriched[index] = {
+                  ...review,
+                  item_name: review.title || review.spotify_id,
+                  item_cover_url: review.item_cover_url || null,
+                  item_artists: review.item_artists || [],
+                  title: review.title || review.spotify_id,
+                };
+
+                done++;
+                if (done === userReviews.length) {
+                  this.reviews = enriched;
+                  console.log(
+                    '[Profile] userId:',
+                    userId,
+                    'reseñas encontradas (sin enriquecer en alguna):',
+                    this.reviews.length
+                  );
+                }
+              }
+            });
+        });
       },
       error: (err) => {
         console.error('[Profile] error cargando reseñas', err);
@@ -125,9 +186,17 @@ export class ProfileComponent implements OnInit {
       }
     });
   }
+  getStarRating(rating: number): string[] {
+    const stars: string[] = [];
+    for (let i = 1; i <= 5; i++) {
+      stars.push(i <= rating ? '★' : '☆');
+    }
+    return stars;
+  }
+
 
   // -----------------------------
-  // Bloques de música (Spotify)
+  // BLOQUES MÚSICA (pueden fallar 403 si faltan scopes; no rompen nada)
   // -----------------------------
   private loadSpotifyBlocks(): void {
     const sToken = this.auth.getAccessToken();
@@ -139,25 +208,53 @@ export class ProfileComponent implements OnInit {
     const S = 'https://api.spotify.com/v1';
     const H = new HttpHeaders({ Authorization: `Bearer ${sToken}` });
 
-    this.http.get<any>(`${S}/me/top/artists?limit=10&time_range=medium_term`, { headers: H })
-      .subscribe({ next: r => this.topArtists = r?.items || [], error: () => {} });
-
-    this.http.get<any>(`${S}/me/top/tracks?limit=10&time_range=medium_term`, { headers: H })
-      .subscribe({ next: r => this.topTracks = r?.items || [], error: () => {} });
-
-    this.http.get<any>(`${S}/me/playlists?limit=10`, { headers: H })
-      .subscribe({ next: r => this.playlists = r?.items || [], error: () => {} });
-
-    this.http.get<any>(`${S}/me/player/recently-played?limit=10`, { headers: H })
+    this.http
+      .get<any>(
+        `${S}/me/top/artists?limit=10&time_range=medium_term`,
+        { headers: H }
+      )
       .subscribe({
-        next: r => this.recentlyPlayed = (r?.items || []).map((it: any) => it.track),
+        next: (r) => (this.topArtists = r?.items || []),
         error: () => {}
       });
 
-    setTimeout(() => this.loading = false, 150);
+    this.http
+      .get<any>(
+        `${S}/me/top/tracks?limit=10&time_range=medium_term`,
+        { headers: H }
+      )
+      .subscribe({
+        next: (r) => (this.topTracks = r?.items || []),
+        error: () => {}
+      });
+
+    this.http
+      .get<any>(`${S}/me/playlists?limit=10`, { headers: H })
+      .subscribe({
+        next: (r) => (this.playlists = r?.items || []),
+        error: () => {}
+      });
+
+    this.http
+      .get<any>(
+        `${S}/me/player/recently-played?limit=10`,
+        { headers: H }
+      )
+      .subscribe({
+        next: (r) =>
+          (this.recentlyPlayed = (r?.items || []).map((it: any) => it.track)),
+        error: () => {}
+      });
+
+    setTimeout(() => (this.loading = false), 150);
   }
 
-  setTab(t: Tab) { this.tab = t; }
+  // -----------------------------
+  // UI helpers
+  // -----------------------------
+  setTab(t: Tab) {
+    this.tab = t;
+  }
 
   logout(): void {
     this.auth.logout().subscribe({
