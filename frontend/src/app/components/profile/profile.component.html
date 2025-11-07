@@ -1,28 +1,168 @@
-<div class="max-w-2xl mx-auto mt-12 p-6">
-  <div *ngIf="profile" class="bg-gray-50 rounded-lg p-8 shadow-md">
-    <h2 class="text-2xl font-bold text-gray-800 mb-4">¡Bienvenido, {{profile.display_name}}!</h2>
-    
-    <img 
-      *ngIf="profile.images?.length" 
-      [src]="profile.images[0].url" 
-      alt="Profile" 
-      class="w-36 h-36 rounded-full mx-auto mb-4 shadow-lg" />
-    
-    <div class="space-y-2 text-gray-700">
-      <p><span class="font-semibold">Email:</span> {{profile.email}}</p>
-      <p><span class="font-semibold">País:</span> {{profile.country}}</p>
-      <p><span class="font-semibold">Seguidores:</span> {{profile.followers?.total}}</p>
+<div class="max-w-3xl mx-auto px-4 py-8">
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="text-center text-neutral-500 py-16">Cargando perfil…</div>
+  <div *ngIf="!loading && error" class="bg-red-100 border border-red-300 text-red-800 px-4 py-3 rounded mb-4">
+    {{ error }}
+  </div>
+
+  <ng-container *ngIf="!loading && profile">
+    <!-- Header perfil -->
+    <section class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm p-6 mb-6 border border-neutral-200 dark:border-neutral-800">
+      <div class="flex items-center gap-4">
+        <img
+          *ngIf="primaryImage(profile.images)"
+          [src]="primaryImage(profile.images)"
+          alt="Avatar"
+          class="w-20 h-20 rounded-full object-cover ring-2 ring-neutral-200 dark:ring-neutral-700"
+        />
+        <div class="flex-1">
+          <h2 class="text-2xl font-bold text-neutral-900 dark:text-neutral-50">
+            {{ profile.display_name || 'Usuario Spotify' }}
+          </h2>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400">
+            {{ profile.email }} · {{ profile.country }}
+          </p>
+          <p class="text-sm text-neutral-500 dark:text-neutral-400">
+            Seguidores: {{ profile.followers?.total || 0 }}
+          </p>
+        </div>
+        <button
+          (click)="logout()"
+          class="px-4 py-2 rounded-full bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition"
+        >
+          Logout
+        </button>
+      </div>
+    </section>
+
+    <!-- Tabs -->
+    <div class="flex gap-2 mb-4">
+      <button
+        (click)="setTab('overview')"
+        class="px-3 py-1.5 rounded-full text-sm border transition
+               border-neutral-300 dark:border-neutral-700
+               "
+        [class.bg-neutral-900]="tab==='overview'"
+        [class.text-white]="tab==='overview'"
+        [class.dark:bg-white]="false"
+      >
+        Overview
+      </button>
+
+      <button
+        (click)="setTab('reviews')"
+        class="px-3 py-1.5 rounded-full text-sm border transition
+               border-neutral-300 dark:border-neutral-700"
+        [class.bg-neutral-900]="tab==='reviews'"
+        [class.text-white]="tab==='reviews'"
+      >
+        Reseñas
+      </button>
+
+      <button
+        (click)="setTab('music')"
+        class="px-3 py-1.5 rounded-full text-sm border transition
+               border-neutral-300 dark:border-neutral-700"
+        [class.bg-neutral-900]="tab==='music'"
+        [class.text-white]="tab==='music'"
+      >
+        Música
+      </button>
     </div>
-    
-    <button 
-      (click)="logout()"
-      class="mt-6 w-full bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-6 rounded-full transition duration-200">
-      Logout
-    </button>
-  </div>
 
-  <div *ngIf="error" class="mt-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-    <p>Error: {{error}}</p>
-  </div>
+    <!-- OVERVIEW -->
+    <section *ngIf="tab==='overview'" class="space-y-6">
+      <!-- Top artistas -->
+      <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-800">
+        <div class="px-5 py-4 flex items-center justify-between">
+          <h3 class="font-semibold text-neutral-900 dark:text-neutral-50">Top artistas</h3>
+        </div>
+        <div class="px-5 pb-5 grid grid-cols-3 sm:grid-cols-5 gap-4">
+          <div *ngFor="let a of topArtists" class="flex flex-col items-center gap-2">
+            <img [src]="primaryImage(a.images, 's') || a.images?.[0]?.url"
+                 class="w-20 h-20 rounded-full object-cover shadow" alt="" />
+            <div class="text-center text-sm text-neutral-700 dark:text-neutral-300 line-clamp-2">{{ a.name }}</div>
+          </div>
+          <div *ngIf="!topArtists.length" class="col-span-full text-neutral-500 dark:text-neutral-400 text-sm">
+            Sin datos todavía.
+          </div>
+        </div>
+      </div>
+
+      <!-- Top canciones -->
+      <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-800">
+        <div class="px-5 py-4">
+          <h3 class="font-semibold text-neutral-900 dark:text-neutral-50">Top canciones</h3>
+        </div>
+        <ul class="px-3 pb-3">
+          <li *ngFor="let t of topTracks" class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800/70">
+            <img [src]="t.album?.images?.[2]?.url || t.album?.images?.[0]?.url" class="w-12 h-12 rounded object-cover" alt="">
+            <div class="min-w-0">
+              <div class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">{{ t.name }}</div>
+              <div class="text-xs text-neutral-500 dark:text-neutral-400 truncate">{{ artistNames(t) }}</div>
+            </div>
+          </li>
+          <li *ngIf="!topTracks.length" class="px-5 pb-4 text-neutral-500 dark:text-neutral-400 text-sm">Sin datos todavía.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- REVIEWS -->
+    <section *ngIf="tab==='reviews'">
+      <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-800">
+        <div class="px-5 py-4">
+          <h3 class="font-semibold text-neutral-900 dark:text-neutral-50">Tus reseñas</h3>
+        </div>
+        <div class="px-5 pb-5 grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div *ngFor="let r of reviews" class="group">
+            <div class="rounded-lg overflow-hidden shadow-sm border border-neutral-200 dark:border-neutral-800">
+              <img [src]="r.album_image" class="w-full aspect-square object-cover group-hover:opacity-90 transition" alt="">
+            </div>
+            <div class="mt-2 text-sm text-neutral-800 dark:text-neutral-200 truncate">{{ r.title || r.album_title }}</div>
+          </div>
+          <div *ngIf="!reviews.length" class="col-span-full text-neutral-500 dark:text-neutral-400 text-sm">
+            Aún no tienes reseñas.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- MÚSICA (Playlists + Recientes) -->
+    <section *ngIf="tab==='music'" class="space-y-6">
+      <!-- Playlists -->
+      <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-800">
+        <div class="px-5 py-4">
+          <h3 class="font-semibold text-neutral-900 dark:text-neutral-50">Tus playlists</h3>
+        </div>
+        <div class="px-5 pb-5 grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div *ngFor="let p of playlists" class="group">
+            <div class="rounded-lg overflow-hidden shadow-sm border border-neutral-200 dark:border-neutral-800">
+              <img [src]="p.images?.[0]?.url" class="w-full aspect-square object-cover" alt="">
+            </div>
+            <div class="mt-2 text-sm text-neutral-800 dark:text-neutral-200 truncate">{{ p.name }}</div>
+          </div>
+          <div *ngIf="!playlists.length" class="col-span-full text-neutral-500 dark:text-neutral-400 text-sm">
+            Sin playlists visibles.
+          </div>
+        </div>
+      </div>
+
+      <!-- Escuchado recientemente -->
+      <div class="bg-white dark:bg-neutral-900 rounded-xl shadow-sm border border-neutral-200 dark:border-neutral-800">
+        <div class="px-5 py-4">
+          <h3 class="font-semibold text-neutral-900 dark:text-neutral-50">Escuchado recientemente</h3>
+        </div>
+        <ul class="px-3 pb-3">
+          <li *ngFor="let t of recentlyPlayed" class="flex items-center gap-3 px-2 py-2 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800/70">
+            <img [src]="t.album?.images?.[2]?.url || t.album?.images?.[0]?.url" class="w-12 h-12 rounded object-cover" alt="">
+            <div class="min-w-0">
+              <div class="text-sm font-medium text-neutral-900 dark:text-neutral-100 truncate">{{ t.name }}</div>
+              <div class="text-xs text-neutral-500 dark:text-neutral-400 truncate">{{ artistNames(t) }}</div>
+            </div>
+          </li>
+          <li *ngIf="!recentlyPlayed.length" class="px-5 pb-4 text-neutral-500 dark:text-neutral-400 text-sm">Sin reproducciones recientes.</li>
+        </ul>
+      </div>
+    </section>
+  </ng-container>
 </div>
-
