@@ -24,7 +24,7 @@ export async function createReview(req: Request, res: Response) {
 
 export async function getReviews(req: Request, res: Response) {
   try {
-    const { user_id, spotify_id, target_type, genre } = req.query;
+    const { user_id, spotify_id, target_type, genre, page, limit } = req.query;
     const filters: any = {};
     
     if (user_id) filters.user_id = user_id;
@@ -32,8 +32,11 @@ export async function getReviews(req: Request, res: Response) {
     if (target_type) filters.target_type = target_type;
     if (genre) filters.genre = genre;
 
-    const reviews = await reviewService.getReviews(filters);
-    res.json(reviews);
+    const pageNumber = parseInt(page as string) || 1;
+    const limitNumber = parseInt(limit as string) || 10;
+
+    const result = await reviewService.getReviews(filters, pageNumber, limitNumber);
+    res.json(result);
   } catch (error: any) {
     res.status(500).json({ error: error.message || "Error al obtener reseñas" });
   }

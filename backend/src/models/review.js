@@ -9,6 +9,12 @@ const ReviewSchema = new mongoose.Schema({
     required: true,
     ref: 'User'
   },
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+    maxlength: 100
+  },
   genre: { 
     type: String, 
     },

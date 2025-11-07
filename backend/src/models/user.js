@@ -18,6 +18,9 @@ const UserSchema = new mongoose.Schema({
   avatar_url: { 
     type: String 
   },
+  image: {
+    type: String
+  },
   genre_preferences: { 
     type: [String], 
     enum: [
