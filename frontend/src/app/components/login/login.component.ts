@@ -54,6 +54,7 @@ export class LoginComponent implements OnInit {
     this.isProcessing = true;
     this.errorMessage = null;
     
+    //pal commit
     // Redirigir a la URL de login de Spotify en el backend
     this.authService.login();
   }
