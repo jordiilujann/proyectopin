@@ -27,6 +27,7 @@ export const routes: Routes = [
       { path: 'search',  component: SearchComponent },
       { path: 'profile', component: ProfileComponent },
       { path: 'review',  component: ReviewComponent },
+      { path: 'review/:id',  component: ReviewComponent },
     ],
   },
   

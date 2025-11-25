@@ -62,11 +62,19 @@ export class ReviewService {
     );
   }
 
-  // Método para obtener información adicional de Spotify (carátulas, nombres)
+  updateReview(reviewId: string, updatedReview: any): Observable<any> {
+    const headers = this.getHeaders();
+    return this.http.put(`${this.API_BASE}/api/reviews/${reviewId}`, updatedReview, {headers});
+  }
+
+  deleteReview(reviewId: string): Observable<any> {
+    const headers = this.getHeaders();
+    return this.http.delete(`${this.API_BASE}/api/reviews/${reviewId}`, { headers });
+  }
+
   getSpotifyItemInfo(spotifyId: string, targetType: string): Observable<any> {
     const headers = this.getHeaders();
     
-    // Mapear el tipo de target a la ruta correcta de Spotify
     let endpoint = '';
     switch (targetType) {
       case 'track':

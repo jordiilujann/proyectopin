@@ -1,10 +1,11 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
-import { FormsModule } from '@angular/forms';
+import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
 import { SpotifyService, SpotifyTrack, SpotifyAlbum, SpotifyArtist } from '../../services/spotify.service';
 import { AuthService } from '../../services/auth.service';
+import { ReviewService } from '../../services/review.service';
+import { FormsModule } from '@angular/forms';
 
 interface SearchResult {
   tracks: SpotifyTrack[];
@@ -41,14 +42,63 @@ export class ReviewComponent implements OnInit {
   error: string = '';
   successMessage: string = '';
   private searchTimeout?: ReturnType<typeof setTimeout>;
+  isEditMode: boolean = false;
+  reviewId: string | null = null;
 
   constructor(
     private spotifyService: SpotifyService,
     private http: HttpClient,
-    private authService: AuthService
+    private authService: AuthService,
+    private reviewService: ReviewService,
+    private route: ActivatedRoute, 
+    private router: Router
   ) {}
 
-  ngOnInit() {}
+  ngOnInit() {
+    this.route.paramMap.subscribe(params => {
+      const id = params.get('id');
+      if (id) {
+        this.isEditMode = true;
+        this.reviewId = id;
+        this.loadReviewData(id);
+      }
+    });
+  }
+
+  loadReviewData(id: string) {
+    this.isLoading = true;
+    this.reviewService.getReviewById(id).subscribe({
+      next: (review: any) => {
+        console.log('Datos recibidos para editar:', review);
+
+        this.title = review.title;
+        this.content = review.content;
+        this.rating = review.rating || review.puntuacion;
+        
+        // RECUPERAR DATOS DEL COMPAÑERO (Timestamp)
+        if (review.timestamp_ms) {
+            this.timestampMs = review.timestamp_ms;
+        }
+
+        const spotifyId = review.spotify_id || review.spotifyId; 
+        const targetType = review.target_type || review.targetType;
+
+        this.selectedItem = {
+           id: spotifyId,
+           name: review.item_name || 'Contenido guardado',
+           type: targetType,
+           coverUrl: review.cover_url || review.coverUrl
+        };
+
+        this.isLoading = false;
+      },
+      error: (err) => {
+        console.error(err);
+        this.error = "Error al cargar la reseña para editar";
+        this.isLoading = false;
+      }
+    });
+  }
 
   search() {
     if (!this.searchQuery.trim()) return;
@@ -160,12 +210,16 @@ export class ReviewComponent implements OnInit {
   }
 
   submitReview() {
+    console.log('Intentando enviar formulario...');
+
+    // 1. Validaciones básicas
     if (!this.selectedItem || this.rating === 0) {
+      console.warn('Faltan datos:', { item: this.selectedItem, rating: this.rating });
       this.error = 'Por favor selecciona un item y establece una valoración';
       return;
     }
 
-    // Validar timestamp si es un track
+    // 2. Validación de Timestamp
     if (this.selectedItem.type === 'track' && this.timestampMs !== null) {
       if (this.trackDurationMs && this.timestampMs > this.trackDurationMs) {
         this.error = `El momento exacto no puede ser mayor a la duración de la canción (${this.formatDuration(this.trackDurationMs)})`;
@@ -173,46 +227,75 @@ export class ReviewComponent implements OnInit {
       }
     }
 
+    // 3. Preparar datos
     const reviewData: any = {
       spotify_id: this.selectedItem.id,
       target_type: this.selectedItem.type,
       rating: this.rating,
-      genre: this.selectedItem.genre || '', // Cadena vacía si no hay género
+      genre: this.selectedItem.genre || '',
       content: this.content,
       title: this.title
     };
 
-    // Solo incluir timestamp_ms si es un track (usar 0 por defecto)
+    // Añadir timestamp si es track
     if (this.selectedItem.type === 'track') {
       const sanitizedTimestamp = this.timestampMs ?? 0;
       reviewData.timestamp_ms = Math.max(0, Math.floor(sanitizedTimestamp));
     }
 
-    // Obtener el token de acceso de Spotify desde localStorage
-    const accessToken = this.authService.getAccessToken();
-    
-    if (!accessToken) {
-      this.error = 'Debes estar autenticado para crear una reseña';
-      return;
-    }
+    console.log('Datos a enviar:', reviewData);
 
-    // Enviar la solicitud con el token de acceso en los headers
-    const headers = { 'Authorization': `Bearer ${accessToken}` };
-    this.http.post(`/api/reviews`, reviewData, { headers }).subscribe({
-      next: (response) => {
-        console.log('Reseña creada:', response);
-        this.successMessage = '¡Reseña creada exitosamente!';
-        this.error = '';
-        this.resetForm();
-        setTimeout(() => {
-          this.successMessage = '';
-        }, 4000);
-      },
-      error: (error) => {
-        this.error = 'Error al crear la reseña';
-        console.error('Error creating review:', error);
+    // 4. Lógica de envío
+    if (this.isEditMode && this.reviewId) {
+      // --- MODO EDICIÓN ---
+      this.reviewService.updateReview(this.reviewId, reviewData).subscribe({
+        next: (res) => {
+          console.log('Respuesta update:', res);
+          alert('Reseña actualizada exitosamente');
+          this.router.navigate(['/app/feed']); 
+        },
+        error: (err) => {
+          console.error('Error al actualizar:', err);
+          this.error = 'Error al actualizar: ' + (err.error?.message || err.message);
+        }
+      });
+    } else {
+      // --- MODO CREACIÓN ---
+      const accessToken = this.authService.getAccessToken();
+      if (!accessToken) {
+        this.error = 'Debes estar autenticado para crear una reseña';
+        return;
       }
-    });
+
+      const headers = { 'Authorization': `Bearer ${accessToken}` };
+      
+      this.http.post(`/api/reviews`, reviewData, { headers }).subscribe({
+        next: (response) => {
+          console.log('Reseña creada:', response);
+          this.successMessage = '¡Reseña creada exitosamente!';
+          alert('Reseña creada exitosamente!');
+          this.router.navigate(['/app/feed']);
+        },
+        error: (error) => {
+          this.error = 'Error al crear la reseña';
+          console.error('Error creating review:', error);
+        }
+      });
+    }
+  }
+
+  deleteReview() {
+    if (this.isEditMode && this.reviewId) {
+      if (confirm('¿Estás seguro de eliminar esta reseña permanentemente?')) {
+        this.reviewService.deleteReview(this.reviewId).subscribe({
+          next: () => {
+            alert('Reseña eliminada');
+            this.router.navigate(['/app/reviews']);
+          },
+          error: (err) => this.error = 'Error al eliminar'
+        });
+      }
+    }
   }
 
   resetForm() {
@@ -224,6 +307,8 @@ export class ReviewComponent implements OnInit {
     this.trackDurationMs = null;
     this.searchQuery = '';
     this.error = '';
+    this.isEditMode = false;
+    this.reviewId = null;
   }
 
   formatDuration(ms: number | null): string {

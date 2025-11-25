@@ -8,13 +8,15 @@
         <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
       </svg>
     </button>
-    <h1 class="text-xl font-bold text-center">Crear Reseña</h1>
-    <div class="w-24"></div> <!-- Espaciador para mantener la alineación -->
+    <h1 class="text-xl font-bold text-center">
+      {{ isEditMode ? 'Editar Reseña' : 'Crear Reseña' }}
+    </h1>
+    <div class="w-24"></div>
   </header>
 
   <div class="max-w-md mx-auto">
     <!-- Buscador -->
-    <section class="mb-6">
+    <section class="mb-6" *ngIf="!isEditMode">
       <h2 class="text-lg font-semibold text-zinc-100 mb-3">Buscar contenido</h2>
       <div class="flex space-x-2">
         <input 
@@ -219,13 +221,20 @@
     </section>
 
     <!-- Botón Publicar -->
-    <div class="flex justify-center mb-6">
-      <button 
-        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors text-base w-full max-w-xs"
+    <div class="flex flex-col gap-3 mb-6"> <button 
+        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors text-base w-full"
         [disabled]="!selectedItem || rating === 0"
         (click)="submitReview()">
-        Publicar
+        {{ isEditMode ? 'Guardar Cambios' : 'Publicar' }}
       </button>
+
+      <button 
+        *ngIf="isEditMode"
+        class="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors text-base w-full"
+        (click)="deleteReview()">
+        Eliminar Reseña
+      </button>
+
     </div>
 
     <div *ngIf="successMessage" class="mb-6 p-3 bg-green-700/30 border border-green-500/40 text-green-200 rounded-lg text-center text-sm">

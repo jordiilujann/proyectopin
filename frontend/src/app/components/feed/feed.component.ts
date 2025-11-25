@@ -3,22 +3,35 @@ import { CommonModule } from '@angular/common';
 import { ReviewService } from '../../services/review.service';
 import { Review, ReviewResponse } from '../../models/review.model';
 import { AuthService } from '../../services/auth.service';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-feed',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './feed.component.html',
 })
 export class FeedComponent implements OnInit {
   reviews: Review[] = [];
   loading: boolean = false;
   error: string = '';
+  activeMenuId: string | null = null;
 
   constructor(
     private reviewService: ReviewService,
     private auth: AuthService
   ) {}
+
+  toggleMenu(event: Event, reviewId: string) {
+    event.stopPropagation();
+    this.activeMenuId = this.activeMenuId === reviewId ? null : reviewId;
+  }
+
+  @HostListener('document:click')
+    clickout() {
+    this.activeMenuId = null;
+  }
+
 
   ngOnInit(): void {
     this.loadReviews();
