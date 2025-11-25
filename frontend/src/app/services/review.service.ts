@@ -87,4 +87,14 @@ export class ReviewService {
       { headers }
     );
   }
+  // En frontend/src/app/services/review.service.ts
+
+  // Añade este método para buscar reseñas específicas de un ítem
+  getReviewsBySpotifyId(spotifyId: string, targetType: string = 'track'): Observable<any[]> {
+    const headers = this.getHeaders();
+    // El backend espera target_type como query param según tu reviewController
+    const params = new HttpParams().set('target_type', targetType);
+  
+    return this.http.get<any[]>(`${this.API_BASE}/api/reviews/spotify/${spotifyId}`, { headers, params });
+}
 }
