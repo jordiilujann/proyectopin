@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, throwError } from 'rxjs';
-import { catchError, switchMap } from 'rxjs/operators';
+import { Observable, throwError, of } from 'rxjs';
+import { catchError, switchMap, tap, map } from 'rxjs/operators';
 
 @Injectable({
   providedIn: 'root'
@@ -22,12 +22,20 @@ export class AuthService {
   saveTokens(accessToken: string, refreshToken: string, userId?: string, userName?: string): void {
     localStorage.setItem(this.ACCESS_TOKEN_KEY, accessToken);
     localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
+    this.storeUserIdentity(userId, userName);
+  }
+
+  private storeUserIdentity(userId?: string, userName?: string) {
     if (userId) {
       localStorage.setItem(this.USER_ID_KEY, userId);
     }
     if (userName) {
       localStorage.setItem(this.USER_NAME_KEY, userName);
     }
+  }
+
+  setUserIdentity(userId?: string, userName?: string): void {
+    this.storeUserIdentity(userId, userName);
   }
 
   getUserId(): string | null {
@@ -57,7 +65,7 @@ export class AuthService {
         if (this.isTokenExpiredError(error)) {
           return this.refreshAccessToken().pipe(
             switchMap((response: any) => {
-              this.saveTokens(response.access_token, response.refresh_token, response.user_id, this.getUserName() || undefined);
+              this.saveTokens(response.access_token, response.refresh_token, response.user_id, response.user_name ?? this.getUserName() ?? undefined);
               const newHeaders = new HttpHeaders({
                 'Authorization': `Bearer ${response.access_token}`
               });
@@ -121,5 +129,23 @@ export class AuthService {
     localStorage.removeItem(this.USER_ID_KEY);
     localStorage.removeItem(this.USER_NAME_KEY);
     return this.http.post(`${this.API_URL}/logout`, {});
+  }
+
+  ensureUserIdentity(): Observable<void> {
+    if (this.getUserId() && this.getUserName()) {
+      return of(void 0);
+    }
+
+    return this.getProfile().pipe(
+      tap((profile: any) => {
+        const userId = profile?.user_id ?? profile?._id ?? profile?.id ?? profile?.spotify_id;
+        const userName = profile?.user_name ?? profile?.display_name ?? profile?.name;
+        this.storeUserIdentity(userId, userName);
+      }),
+      map(() => void 0),
+      catchError((error) => {
+        return of(void 0);
+      })
+    );
   }
 }

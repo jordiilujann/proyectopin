@@ -36,9 +36,16 @@ export class FeedComponent implements OnInit {
 
 
   ngOnInit(): void {
-    this.currentUserId = this.auth.getUserId();
-    this.currentUserName = this.auth.getUserName();
-    this.loadReviews();
+    this.auth.ensureUserIdentity().subscribe({
+      next: () => {
+        this.currentUserId = this.auth.getUserId();
+        this.currentUserName = this.auth.getUserName();
+        this.loadReviews();
+      },
+      error: () => {
+        this.loadReviews();
+      }
+    });
   }
 
   loadReviews(): void {

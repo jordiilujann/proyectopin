@@ -53,9 +53,20 @@ export async function getProfile(req: Request, res: Response) {
 
     const accessToken = authHeader.substring(7);
     const profile = await authService.getUserProfile(accessToken);
-    return res.json(profile);
+
+    let user = null;
+    try {
+      user = await userService.getUserBySpotifyId(profile.id);
+    } catch (error) {
+      // ignorar si no existe
+    }
+
+    return res.json({
+      ...profile,
+      user_id: user?._id?.toString() ?? null,
+      user_name: user?.name ?? profile.display_name ?? null,
+    });
   } catch (error: any) {
-    // Si el token expiró, intentar renovarlo automáticamente
     if (error.message?.includes("expired") || error.message?.includes("401")) {
       return res.status(401).json({ 
         error: "Token expired", 

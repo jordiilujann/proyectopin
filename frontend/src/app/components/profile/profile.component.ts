@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 import { AuthService } from '../../services/auth.service';
+import { ReviewService } from '../../services/review.service';
 
 type Tab = 'overview' | 'reviews' | 'music';
 
@@ -34,7 +35,8 @@ export class ProfileComponent implements OnInit {
 
   constructor(
     private auth: AuthService,
-    private http: HttpClient
+    private http: HttpClient,
+    private reviewService: ReviewService
   ) {}
 
   ngOnInit(): void {
@@ -50,6 +52,10 @@ export class ProfileComponent implements OnInit {
       next: (data: any) => {
         this.profile = data;
         this.error = '';
+
+        const userId = data?.user_id ?? data?._id ?? data?.id ?? data?.spotify_id;
+        const userName = data?.user_name ?? data?.display_name ?? data?.name;
+        this.auth.setUserIdentity(userId, userName);
 
         // Dispara cargas en paralelo
         this.loadReviews();
@@ -74,9 +80,47 @@ export class ProfileComponent implements OnInit {
 
     this.http.get<any[]>(`${this.API_BASE}/api/reviews/user/${uid}`, { headers })
       .subscribe({
-        next: (res) => { this.reviews = res || []; },
-        error: () => { /* silencioso; no bloquea la vista */ }
+        next: (res) => { this.enrichReviews(res || []); },
+        error: () => { this.reviews = []; }
       });
+  }
+
+  private enrichReviews(reviews: any[]): void {
+    if (!reviews.length) {
+      this.reviews = [];
+      return;
+    }
+
+    const enriched: any[] = [];
+    let processed = 0;
+
+    reviews.forEach((review, index) => {
+      this.reviewService.getSpotifyItemInfo(review.spotify_id, review.target_type).subscribe({
+        next: (info) => {
+          enriched[index] = {
+            ...review,
+            album_image: info.coverUrl ||
+              info.album?.images?.[0]?.url ||
+              info.images?.[0]?.url ||
+              review.album_image ||
+              null,
+            item_name: info.name || review.item_name || review.title,
+            item_artists: info.artists ? info.artists.map((a: any) => a.name) : review.item_artists
+          };
+          processed++;
+          if (processed === reviews.length) {
+            this.reviews = enriched;
+          }
+        },
+        error: () => {
+          enriched[index] = review;
+          processed++;
+          if (processed === reviews.length) {
+            this.reviews = enriched;
+          }
+        }
+      });
+    });
   }
 
   // -----------------------------

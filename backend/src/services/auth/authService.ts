@@ -10,7 +10,13 @@ const REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI!;
 
 export function getLoginUrl(): string {
   const state = Math.random().toString(36).substring(7);
-  const scope = "user-read-private user-read-email";
+  const scope = [
+    "user-read-private",
+    "user-read-email",
+    "user-top-read",
+    "playlist-read-private",
+    "user-read-recently-played"
+  ].join(" ");
   
   const params = new URLSearchParams({
     client_id: CLIENT_ID,
