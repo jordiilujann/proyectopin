@@ -16,6 +16,8 @@ export class FeedComponent implements OnInit {
   loading: boolean = false;
   error: string = '';
   activeMenuId: string | null = null;
+  currentUserId: string | null = null;
+  currentUserName: string | null = null;
 
   constructor(
     private reviewService: ReviewService,
@@ -34,6 +36,8 @@ export class FeedComponent implements OnInit {
 
 
   ngOnInit(): void {
+    this.currentUserId = this.auth.getUserId();
+    this.currentUserName = this.auth.getUserName();
     this.loadReviews();
   }
 

@@ -11,6 +11,7 @@ export class AuthService {
   private readonly ACCESS_TOKEN_KEY = 'spotify_access_token';
   private readonly REFRESH_TOKEN_KEY = 'spotify_refresh_token';
   private readonly USER_ID_KEY = 'user_id';
+  private readonly USER_NAME_KEY = 'user_name';
 
   constructor(private http: HttpClient) {}
 
@@ -18,16 +19,23 @@ export class AuthService {
     window.location.href = `${this.API_URL}/login`;
   }
 
-  saveTokens(accessToken: string, refreshToken: string, userId?: string): void {
+  saveTokens(accessToken: string, refreshToken: string, userId?: string, userName?: string): void {
     localStorage.setItem(this.ACCESS_TOKEN_KEY, accessToken);
     localStorage.setItem(this.REFRESH_TOKEN_KEY, refreshToken);
     if (userId) {
       localStorage.setItem(this.USER_ID_KEY, userId);
     }
+    if (userName) {
+      localStorage.setItem(this.USER_NAME_KEY, userName);
+    }
   }
 
   getUserId(): string | null {
     return localStorage.getItem(this.USER_ID_KEY);
+  }
+
+  getUserName(): string | null {
+    return localStorage.getItem(this.USER_NAME_KEY);
   }
 
   getAccessToken(): string | null {
@@ -49,7 +57,7 @@ export class AuthService {
         if (this.isTokenExpiredError(error)) {
           return this.refreshAccessToken().pipe(
             switchMap((response: any) => {
-              this.saveTokens(response.access_token, response.refresh_token, response.user_id);
+              this.saveTokens(response.access_token, response.refresh_token, response.user_id, this.getUserName() || undefined);
               const newHeaders = new HttpHeaders({
                 'Authorization': `Bearer ${response.access_token}`
               });
@@ -97,6 +105,7 @@ export class AuthService {
         localStorage.removeItem(this.ACCESS_TOKEN_KEY);
         localStorage.removeItem(this.REFRESH_TOKEN_KEY);
         localStorage.removeItem(this.USER_ID_KEY);
+        localStorage.removeItem(this.USER_NAME_KEY);
         window.location.href = '/login?error=token_expired';
       }
     });
@@ -110,6 +119,7 @@ export class AuthService {
     localStorage.removeItem(this.ACCESS_TOKEN_KEY);
     localStorage.removeItem(this.REFRESH_TOKEN_KEY);
     localStorage.removeItem(this.USER_ID_KEY);
+    localStorage.removeItem(this.USER_NAME_KEY);
     return this.http.post(`${this.API_URL}/logout`, {});
   }
 }

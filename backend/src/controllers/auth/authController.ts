@@ -35,7 +35,8 @@ export async function callback(req: Request, res: Response) {
     });
 
     const userId = (user as any)?._id?.toString?.() ?? (user as any)?.id ?? "";
-    const redirectUrl = `${FRONTEND_ORIGIN}?access_token=${tokenData.access_token}&refresh_token=${tokenData.refresh_token}${userId ? `&user_id=${encodeURIComponent(userId)}` : ""}`;
+    const userName = user?.name || profile.display_name || "";
+    const redirectUrl = `${FRONTEND_ORIGIN}?access_token=${tokenData.access_token}&refresh_token=${tokenData.refresh_token}${userId ? `&user_id=${encodeURIComponent(userId)}` : ""}${userName ? `&user_name=${encodeURIComponent(userName)}` : ""}`;
     res.redirect(redirectUrl);
   } catch (error) {
     res.redirect(`${FRONTEND_ORIGIN}?error=auth_failed`);

@@ -107,29 +107,31 @@
               </button>
             </div>
 
-            <!-- Compartir -->
+            <!-- Compartir / acciones -->
             <div class="flex items-center space-x-4 relative">
-  
               <button class="text-zinc-400 hover:text-green-500 transition-colors">
                 <span class="text-xl">↗️</span>
               </button>
 
-              <button (click)="toggleMenu($event, review._id!)" class="text-zinc-400 hover:text-white transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                </svg>
-              </button>
-
-              @if (activeMenuId === review._id) {
-                <div class="absolute right-0 bottom-8 w-32 bg-zinc-900 border border-zinc-700 rounded shadow-xl z-10 overflow-hidden">
-                  <button 
-                    [routerLink]="['/app/review', review._id]" 
-                    class="w-full text-left px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-800 transition-colors">
-                    Editar
+              @if ((review.user_id && currentUserId && review.user_id === currentUserId) || (review.user_name && currentUserName && review.user_name === currentUserName)) {
+                <div class="relative">
+                  <button (click)="toggleMenu($event, review._id!)" class="text-zinc-400 hover:text-white transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                    </svg>
                   </button>
-                  </div>
-              }
 
+                  @if (activeMenuId === review._id) {
+                    <div class="absolute right-0 bottom-8 w-32 bg-zinc-900 border border-zinc-700 rounded shadow-xl z-10 overflow-hidden">
+                      <button 
+                        [routerLink]="['/app/review', review._id]" 
+                        class="w-full text-left px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-800 transition-colors">
+                        Editar
+                      </button>
+                    </div>
+                  }
+                </div>
+              }
             </div>
           </div>
         </div>

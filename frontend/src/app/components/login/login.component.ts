@@ -26,6 +26,8 @@ export class LoginComponent implements OnInit {
       const refreshToken = params['refresh_token'];
       const error = params['error'];
       const tokenExpired = params['token_expired'];
+      const userId = params['user_id'];
+      const userName = params['user_name'];
 
       if (error) {
         this.errorMessage = 'Error en la autenticación. Por favor, intenta de nuevo.';
@@ -42,7 +44,7 @@ export class LoginComponent implements OnInit {
         this.isProcessing = true;
         
         // Guardar tokens en localStorage
-        this.authService.saveTokens(accessToken, refreshToken);
+        this.authService.saveTokens(accessToken, refreshToken, userId, userName);
         
         // Redirigir al feed
         this.router.navigate(['/app/feed']);
