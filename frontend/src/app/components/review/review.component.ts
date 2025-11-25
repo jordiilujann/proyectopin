@@ -39,6 +39,8 @@ export class ReviewComponent implements OnInit {
   trackDurationMs: number | null = null;
   isLoading: boolean = false;
   error: string = '';
+  successMessage: string = '';
+  private searchTimeout?: ReturnType<typeof setTimeout>;
 
   constructor(
     private spotifyService: SpotifyService,
@@ -51,6 +53,12 @@ export class ReviewComponent implements OnInit {
   search() {
     if (!this.searchQuery.trim()) return;
 
+    if (this.searchTimeout) {
+      clearTimeout(this.searchTimeout);
+      this.searchTimeout = undefined;
+    }
+
+    this.successMessage = '';
     this.isLoading = true;
     this.error = '';
 
@@ -125,6 +133,15 @@ export class ReviewComponent implements OnInit {
     this.searchQuery = '';
   }
 
+  onSearchInput() {
+    if (this.searchTimeout) {
+      clearTimeout(this.searchTimeout);
+    }
+    this.searchTimeout = setTimeout(() => {
+      this.search();
+    }, 400);
+  }
+
   getArtistGenre(artistId: string) {
     this.spotifyService.getArtistById(artistId).subscribe({
       next: (artist) => {
@@ -184,8 +201,12 @@ export class ReviewComponent implements OnInit {
     this.http.post(`/api/reviews`, reviewData, { headers }).subscribe({
       next: (response) => {
         console.log('Reseña creada:', response);
-        alert('Reseña creada exitosamente!');
+        this.successMessage = '¡Reseña creada exitosamente!';
+        this.error = '';
         this.resetForm();
+        setTimeout(() => {
+          this.successMessage = '';
+        }, 4000);
       },
       error: (error) => {
         this.error = 'Error al crear la reseña';
