@@ -35,6 +35,8 @@ export class ReviewComponent implements OnInit {
   rating: number = 0;
   title: string = '';
   content: string = '';
+  timestampMs: number | null = null;
+  trackDurationMs: number | null = null;
   isLoading: boolean = false;
   error: string = '';
 
@@ -84,12 +86,34 @@ export class ReviewComponent implements OnInit {
 
     // Extraer información adicional basada en el tipo
     if (type === 'track' && 'artists' in item) {
+      this.timestampMs = 0;
       this.selectedItem.artists = item.artists;
+      // Obtener la duración de la canción
+      if ('durationMs' in item && item.durationMs) {
+        this.trackDurationMs = item.durationMs;
+      } else {
+        // Si no viene en el resultado de búsqueda, obtenerlo por ID
+        this.spotifyService.getTrackById(item.id).subscribe({
+          next: (track) => {
+            this.trackDurationMs = track.durationMs;
+          },
+          error: (error) => {
+            console.error('Error getting track duration:', error);
+            this.trackDurationMs = null;
+          }
+        });
+      }
       // Para tracks, intentamos obtener el género del primer artista
       if (item.artists.length > 0) {
         this.getArtistGenre(item.artists[0].id);
       }
-    } else if (type === 'album' && 'artists' in item) {
+    } else {
+      // Si no es un track, limpiar la duración y el timestamp
+      this.trackDurationMs = null;
+      this.timestampMs = null;
+    }
+
+    if (type === 'album' && 'artists' in item) {
       this.selectedItem.artists = item.artists;
     } else if (type === 'artist' && 'genres' in item) {
       // Para artistas, usamos el primer género disponible
@@ -124,7 +148,15 @@ export class ReviewComponent implements OnInit {
       return;
     }
 
-    const reviewData = {
+    // Validar timestamp si es un track
+    if (this.selectedItem.type === 'track' && this.timestampMs !== null) {
+      if (this.trackDurationMs && this.timestampMs > this.trackDurationMs) {
+        this.error = `El momento exacto no puede ser mayor a la duración de la canción (${this.formatDuration(this.trackDurationMs)})`;
+        return;
+      }
+    }
+
+    const reviewData: any = {
       spotify_id: this.selectedItem.id,
       target_type: this.selectedItem.type,
       rating: this.rating,
@@ -132,6 +164,12 @@ export class ReviewComponent implements OnInit {
       content: this.content,
       title: this.title
     };
+
+    // Solo incluir timestamp_ms si es un track (usar 0 por defecto)
+    if (this.selectedItem.type === 'track') {
+      const sanitizedTimestamp = this.timestampMs ?? 0;
+      reviewData.timestamp_ms = Math.max(0, Math.floor(sanitizedTimestamp));
+    }
 
     // Obtener el token de acceso de Spotify desde localStorage
     const accessToken = this.authService.getAccessToken();
@@ -161,8 +199,39 @@ export class ReviewComponent implements OnInit {
     this.rating = 0;
     this.title = '';
     this.content = '';
+    this.timestampMs = null;
+    this.trackDurationMs = null;
     this.searchQuery = '';
     this.error = '';
+  }
+
+  formatDuration(ms: number | null): string {
+    if (!ms || ms < 0) return '0:00';
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }
+
+  formatTimestamp(ms: number | null): string {
+    return this.formatDuration(ms);
+  }
+
+  onTimestampInput(event: Event) {
+    const inputValue = Number((event.target as HTMLInputElement).value);
+    this.timestampMs = isNaN(inputValue) ? 0 : inputValue;
+    this.onTimestampChange();
+  }
+
+  onTimestampChange() {
+    // Validar que el timestamp no exceda la duración
+    if (this.selectedItem?.type === 'track' && this.timestampMs !== null && this.trackDurationMs) {
+      if (this.timestampMs > this.trackDurationMs) {
+        this.error = `El momento exacto no puede ser mayor a la duración de la canción (${this.formatDuration(this.trackDurationMs)})`;
+      } else {
+        this.error = '';
+      }
+    }
   }
 
   getArtistNames(artists: { name: string }[]): string {

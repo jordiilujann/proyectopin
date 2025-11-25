@@ -9,6 +9,7 @@ export interface Review {
   content: string;
   rating: number;
   likes: number;
+  timestamp_ms?: number | null; // Momento exacto de la canción en milisegundos
   created_at: string;
   item_name?: string; // Nombre del item (canción, álbum, artista)
   item_cover_url?: string; // URL de la carátula

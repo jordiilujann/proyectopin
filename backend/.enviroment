@@ -5,3 +5,4 @@ SPOTIFY_MARKET=ES
 PORT=3000
 MONGODB_URI=mongodb+srv://hugocalo97:hugocalo@mondongodb.ucrwfs5.mongodb.net/?appName=MondongoDB
 FRONTEND_ORIGIN=http://127.0.0.1:4200
+GENIUS_TOKEN=nXTZD0UMJHVoBS9SHEz16vtMs471qNf-3NVC7YWWUUCY_Cm-ouMcI1xFIQwdAiK0

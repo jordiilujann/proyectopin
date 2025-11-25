@@ -69,6 +69,15 @@
           <!-- Título de la reseña -->
           <div class="mb-3">
             <h4 class="font-semibold text-white text-xl">{{ review.title }}</h4>
+            <!-- Momento exacto (solo para tracks) -->
+            @if (review.target_type === 'track' && review.timestamp_ms !== null && review.timestamp_ms !== undefined) {
+              <div class="mt-2 inline-flex items-center space-x-2 px-3 py-1 bg-blue-600/20 border border-blue-500/30 rounded-full">
+                <span class="text-blue-400 text-sm">⏱️</span>
+                <span class="text-blue-300 text-sm font-medium">
+                  Momento: {{ formatDuration(review.timestamp_ms) }}
+                </span>
+              </div>
+            }
           </div>
 
           <!-- Contenido de la reseña -->

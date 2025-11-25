@@ -41,6 +41,20 @@ const ReviewSchema = new mongoose.Schema({
     max: 5, 
     required: true 
   },
+  timestamp_ms: {
+    type: Number,
+    min: 0,
+    default: null,
+    validate: {
+        validator: function(value) {
+            // Si es null, está permitido (para reseñas de álbumes, artistas, etc.)
+            if (value === null || value === undefined) return true;
+            // Debe ser un número positivo
+            return value >= 0;
+        },
+        message: 'El momento exacto debe ser un número positivo en milisegundos'
+    }
+},
 
   likes: { 
     type: Number, 
