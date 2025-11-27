@@ -7,8 +7,15 @@
 
     <div class="space-y-6">
       @for (review of reviews; track review._id) {
-        <div class="bg-zinc-800 rounded-xl shadow-lg p-6 border border-zinc-700 transition-all duration-200 hover:border-zinc-600">
+        <div class="bg-zinc-800 rounded-xl shadow-lg p-6 border border-zinc-700 transition-all duration-200 hover:border-zinc-600 relative">
           
+          <!-- DISTINTIVO: Tu reseña -->
+          @if (review.user_id === currentUserId) {
+            <div class="absolute top-4 right-4 bg-blue-600/20 text-blue-300 text-xs font-bold px-3 py-1 rounded-full border border-blue-500/30 z-10">
+              TU RESEÑA
+            </div>
+          }
+
           <div class="flex items-center space-x-4 mb-4">
             <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
               <span class="text-white font-bold text-sm">{{ review.user_name?.charAt(0) || 'U' }}</span>
@@ -69,7 +76,7 @@
             >
               <span>🔍</span> 
               <span>
-                {{ selectedItemId === review.spotify_id ? 'Ocultar opiniones' : 'Más opiniones de: ' + (review.item_name || 'esta obra') }}
+                {{ selectedItemId === review.spotify_id ? 'Ocultar opiniones' : 'Más opiniones' }}
               </span>
             </button>
           </div>
@@ -102,13 +109,11 @@
             </div>
 
             <div class="flex items-center space-x-3 relative">
-  
               <button class="text-zinc-400 hover:text-green-500 transition-colors" title="Compartir">
                 <span class="text-xl">↗️</span>
               </button>
 
               @if (currentUserId === review.user_id) {
-                
                 <button 
                   (click)="toggleMenu($event, review._id!)" 
                   class="text-zinc-400 hover:text-white transition-colors p-1 rounded-full hover:bg-zinc-700/50">
@@ -120,7 +125,7 @@
                 @if (activeMenuId === review._id) {
                   <div class="absolute right-0 bottom-full mb-2 w-32 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-20 overflow-hidden ring-1 ring-black ring-opacity-5">
                     <button 
-                      [routerLink]="['/app/review', review._id]" 
+                      [routerLink]="['/app/review', {id: review._id}]" 
                       class="w-full text-left px-4 py-2.5 text-sm text-zinc-200 hover:bg-zinc-800 transition-colors flex items-center gap-2">
                       <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -129,16 +134,36 @@
                     </button>
                   </div>
                 }
-
               }
             </div>
           </div>
 
+          <!-- SECCIÓN DESPLEGABLE -->
           @if (selectedItemId === review.spotify_id) {
             <div class="mt-6 pt-6 border-t border-zinc-700 bg-zinc-900/30 -mx-6 -mb-6 p-6 rounded-b-xl animate-fadeIn">
-              <h5 class="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-4">
-                Opiniones de la comunidad sobre "{{ review.item_name }}"
-              </h5>
+              
+              <!-- HEADER CON CONTADOR Y BOTÓN OPCIONAL (NUEVO) -->
+              <div class="flex justify-between items-center mb-4">
+                <div class="flex items-center gap-3">
+                  <h5 class="text-zinc-400 text-xs font-bold uppercase tracking-wider">
+                    Opiniones de la comunidad
+                  </h5>
+                  @if (!isLoadingReviews && selectedItemReviews.length > 1) {
+                    <span class="text-xs bg-zinc-700 text-zinc-300 px-2 py-1 rounded-full">
+                      {{ selectedItemReviews.length - 1 }} opiniones más
+                    </span>
+                  }
+                </div>
+
+                <!-- BOTÓN: Opina tú también (Solo si hay más reseñas y NO has opinado) -->
+                @if (!isLoadingReviews && selectedItemReviews.length > 1 && !hasUserReviewed(selectedItemReviews)) {
+                    <button 
+                      (click)="goToCreateReview(review)"
+                      class="text-xs bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded-full transition-colors flex items-center gap-1 shadow-md hover:shadow-lg">
+                      <span>✎</span> Opina tú también
+                    </button>
+                }
+              </div>
 
               @if (isLoadingReviews) {
                 <div class="flex justify-center py-4">
@@ -150,7 +175,11 @@
                 <div class="space-y-3">
                   @for (otherReview of selectedItemReviews; track otherReview._id) {
                     @if (otherReview._id !== review._id) {
-                      <div class="bg-zinc-800 p-4 rounded-lg border border-zinc-700 hover:border-zinc-600 transition-colors">
+                      <div class="bg-zinc-800 p-4 rounded-lg border border-zinc-700 hover:border-zinc-600 transition-colors relative">
+                        <!-- Badge si la otra reseña TAMBIÉN es mía -->
+                        @if (otherReview.user_id === currentUserId) {
+                           <div class="absolute top-2 right-2 text-blue-400 text-[10px] font-bold px-2">TUYA</div>
+                        }
                         <div class="flex justify-between items-start mb-2">
                           <div class="flex items-center gap-2">
                             <div class="w-6 h-6 bg-zinc-700 rounded-full flex items-center justify-center">
@@ -168,9 +197,30 @@
                     }
                   }
                   
+                  <!-- LÓGICA DE MENSAJES VACÍOS -->
                   @if (selectedItemReviews.length <= 1) {
-                    <div class="text-center py-4 text-zinc-500 italic text-sm">
-                      No hay otras reseñas para esta canción. ¡Sé el primero en añadir otra!
+                    <div class="text-center py-6 bg-zinc-800/50 rounded-lg border border-dashed border-zinc-700">
+                      
+                      <!-- CASO A: Es MI reseña y no hay más -->
+                      @if (review.user_id === currentUserId) {
+                        <p class="text-zinc-400 italic text-sm">
+                          Eres el único pionero que ha opinado sobre esto. 
+                          <br><span class="text-zinc-500 text-xs">¡Tu opinión es única por ahora!</span>
+                        </p>
+                      }
+
+                      <!-- CASO B: Es reseña AJENA y no hay más -->
+                      @if (review.user_id !== currentUserId) {
+                         <p class="text-zinc-400 italic text-sm mb-3">
+                          No hay otras reseñas aparte de esta.
+                        </p>
+                        <button 
+                          (click)="goToCreateReview(review)"
+                          class="text-blue-400 hover:text-blue-300 text-sm font-medium hover:underline focus:outline-none flex items-center justify-center gap-1 w-full">
+                          <span>✨</span> ¡Sé el primero en añadir otra!
+                        </button>
+                      }
+
                     </div>
                   }
                 </div>

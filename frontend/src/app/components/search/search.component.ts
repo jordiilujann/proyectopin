@@ -1,13 +1,10 @@
-import { Component, ChangeDetectorRef } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Component, ChangeDetectorRef, OnInit } from '@angular/core';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ReviewService } from '../../services/review.service';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { HttpHeaders } from '@angular/common/http';
-
-
 
 interface SpotifyTrack {
   id: string;
@@ -36,7 +33,7 @@ interface User {
   imports: [CommonModule, FormsModule],
   templateUrl: './search.component.html',
 })
-export class SearchComponent {
+export class SearchComponent implements OnInit {
   searchQuery: string = '';
   activeTab: 'spotify' | 'users' = 'spotify';
   spotifyResults: SpotifyTrack[] = [];
@@ -48,7 +45,6 @@ export class SearchComponent {
   currentUserId: string | null = null;
   isFollowing: { [userId: string]: boolean } = {};
 
-
   constructor(
     private http: HttpClient, 
     private cdr: ChangeDetectorRef,
@@ -57,13 +53,19 @@ export class SearchComponent {
     private auth: AuthService
   ) {}
 
+  ngOnInit() {
+    // Inicializar usuario actual para saber cuáles son sus reseñas
+    this.auth.ensureUserIdentity().subscribe(() => {
+      this.currentUserId = this.auth.getUserId();
+    });
+  }
+
   search() {
     if (!this.searchQuery.trim()) return;
 
     this.isLoading = true;
     this.error = '';
     this.selectedItemId = '';
-
     this.selectedItemReviews = [];
 
     if (this.activeTab === 'spotify') {
@@ -99,8 +101,7 @@ export class SearchComponent {
             isFollowing: false
           }));
           this.isLoading = false;
-      },
-
+        },
         error: (error) => {
           this.error = 'Error al buscar usuarios';
           this.isLoading = false;
@@ -109,55 +110,51 @@ export class SearchComponent {
       });
   }
 
+  toggleFollow(user: User) {
+    if (!user._id) return;
 
-      toggleFollow(user: User) {
-  if (!user._id) return;
+    // 1) Sacamos el token de Spotify que guardaste al hacer login
+    const accessToken = this.auth.getAccessToken();
+    if (!accessToken) {
+      console.warn('[Search] No hay accessToken de Spotify; haz login de nuevo.');
+      return;
+    }
 
-  // 1) Sacamos el token de Spotify que guardaste al hacer login
-  const accessToken = this.auth.getAccessToken();
-  if (!accessToken) {
-    console.warn('[Search] No hay accessToken de Spotify; haz login de nuevo.');
-    return;
-  }
+    const url = '/api/follows';
+    const body = { targetUserId: user._id };
 
-  const url = '/api/follows';
-  const body = { targetUserId: user._id };
-
-  // 2) Header tal y como lo exige spotifyAuthMiddleware
-  const headers = new HttpHeaders({
-    Authorization: `Bearer ${accessToken}`,
-    'Content-Type': 'application/json',
-  });
-
-  console.log('[Search] toggleFollow para', user.name, 'isFollowing =', user.isFollowing);
-
-  if (user.isFollowing) {
-    // UNFOLLOW
-    this.http.delete(url, { body, headers }).subscribe({
-      next: (res) => {
-        console.log('[Search] Unfollow OK', res);
-        user.isFollowing = false;
-      },
-      error: (err) => {
-        console.error('[Search] Error al dejar de seguir', err);
-      }
+    // 2) Header tal y como lo exige spotifyAuthMiddleware
+    const headers = new HttpHeaders({
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
     });
-  } else {
-    // FOLLOW
-    this.http.post(url, body, { headers }).subscribe({
-      next: (res) => {
-        console.log('[Search] Follow OK', res);
-        user.isFollowing = true;
-      },
-      error: (err) => {
-        console.error('[Search] Error al seguir', err);
-      }
-    });
+
+    console.log('[Search] toggleFollow para', user.name, 'isFollowing =', user.isFollowing);
+
+    if (user.isFollowing) {
+      // UNFOLLOW
+      this.http.delete(url, { body, headers }).subscribe({
+        next: (res) => {
+          console.log('[Search] Unfollow OK', res);
+          user.isFollowing = false;
+        },
+        error: (err) => {
+          console.error('[Search] Error al dejar de seguir', err);
+        }
+      });
+    } else {
+      // FOLLOW
+      this.http.post(url, body, { headers }).subscribe({
+        next: (res) => {
+          console.log('[Search] Follow OK', res);
+          user.isFollowing = true;
+        },
+        error: (err) => {
+          console.error('[Search] Error al seguir', err);
+        }
+      });
+    }
   }
-}
-
-
-
 
   setActiveTab(tab: 'spotify' | 'users') {
     this.activeTab = tab;
@@ -172,21 +169,20 @@ export class SearchComponent {
 
   viewReviews(spotifyId: string, name: string, type: 'track' | 'artist' | 'album') {
     // Usamos el ID para comparar, que es único
-  if (this.selectedItemId === spotifyId) {
-    this.selectedItemId = ''; // Cerrar si ya está abierto
-    this.selectedItemReviews = [];
-    return;
-  }
+    if (this.selectedItemId === spotifyId) {
+      this.selectedItemId = ''; // Cerrar si ya está abierto
+      this.selectedItemReviews = [];
+      return;
+    }
 
-  this.selectedItemId = spotifyId; //Guardamos el ID, no el nombre
-  this.isLoading = true;
+    this.selectedItemId = spotifyId; // Guardamos el ID, no el nombre
+    this.isLoading = true;
     
     this.reviewService.getReviewsBySpotifyId(spotifyId, type).subscribe({
       next: (reviews) => {
         this.selectedItemReviews = reviews;
         this.isLoading = false;
         console.log(`Reseñas encontradas para ${name}:`, reviews);
-        // Aquí podrías abrir un modal o navegar a una página de detalles
         this.cdr.detectChanges();
       },
       error: (err) => {
@@ -197,20 +193,36 @@ export class SearchComponent {
   }
 
   goToCreateReview(item: any, type: 'track' | 'artist' | 'album') {
-  // Preparamos el objeto tal como lo espera el ReviewComponent
-  const itemToPass = {
-    id: item.id,
-    name: item.name,
-    type: type,
-    coverUrl: item.coverUrl,
-    artists: item.artists, // Importante para buscar el género luego
-    // Si es un artista, a veces la propiedad de género viene aquí, si no, el ReviewComponent la buscará
-    genres: item.genres 
-  };
+    // Preparamos el objeto tal como lo espera el ReviewComponent
+    const itemToPass = {
+      id: item.id,
+      name: item.name,
+      type: type,
+      coverUrl: item.coverUrl,
+      artists: item.artists, // Importante para buscar el género luego
+      genres: item.genres 
+    };
 
-  // Navegamos a la ruta '/app/review' pasando el objeto en el 'state'
-  this.router.navigate(['/app/review'], { 
-    state: { preSelected: itemToPass } 
-  });
-}
+    // Navegamos a la ruta '/app/review' pasando el objeto en el 'state'
+    this.router.navigate(['/app/review'], { 
+      state: { preSelected: itemToPass } 
+    });
+  }
+
+  // --- FUNCIONES NUEVAS ---
+
+  // Comprobar si el usuario actual ya ha hecho una reseña en esta lista
+  hasUserReviewed(reviews: any[]): boolean {
+    if (!this.currentUserId) return false;
+    return reviews.some(r => r.user_id === this.currentUserId);
+  }
+
+  // Ir a editar la reseña propia
+  editReview(reviews: any[]) {
+    const myReview = reviews.find(r => r.user_id === this.currentUserId);
+    if (myReview) {
+      // Navegar a la pantalla de review pero pasando el ID para activar modo edición
+      this.router.navigate(['/app/review', { id: myReview._id }]);
+    }
+  }
 }

@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ReviewService } from '../../services/review.service';
 import { Review, ReviewResponse } from '../../models/review.model';
 import { AuthService } from '../../services/auth.service';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router';
 
 @Component({
   selector: 'app-feed',
@@ -25,8 +25,8 @@ export class FeedComponent implements OnInit {
   constructor(
     private reviewService: ReviewService,
     private auth: AuthService,
-    private cdr: ChangeDetectorRef
-
+    private cdr: ChangeDetectorRef,
+    private router: Router // Inyección de Router
   ) {}
 
   toggleMenu(event: Event, reviewId: string) {
@@ -35,10 +35,9 @@ export class FeedComponent implements OnInit {
   }
 
   @HostListener('document:click')
-    clickout() {
+  clickout() {
     this.activeMenuId = null;
   }
-
 
   ngOnInit(): void {
     this.auth.ensureUserIdentity().subscribe({
@@ -152,8 +151,6 @@ export class FeedComponent implements OnInit {
     });
   }
 
-  // Se eliminó la funcionalidad de scroll infinito
-
   likeReview(review: Review): void {
     if (!review._id) return;
 
@@ -197,6 +194,7 @@ export class FeedComponent implements OnInit {
     const seconds = totalSeconds % 60;
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
+  
   viewItemReviews(spotifyId: string, targetType: string) {
     if (this.selectedItemId === spotifyId) {
       this.selectedItemId = '';
@@ -220,5 +218,25 @@ export class FeedComponent implements OnInit {
       }
     });
   }
-}//
 
+  goToCreateReview(review: Review) {
+    const itemToPass = {
+      id: review.spotify_id,
+      name: review.item_name,
+      type: review.target_type,
+      coverUrl: review.item_cover_url,
+      artists: review.item_artists?.map(name => ({ name })) || [],
+      genre: review.genre 
+    };
+
+    this.router.navigate(['/app/review'], { 
+      state: { preSelected: itemToPass } 
+    });
+  }
+
+  // NUEVO: Método para verificar si el usuario ya ha reseñado
+  hasUserReviewed(reviews: any[]): boolean {
+    if (!this.currentUserId) return false;
+    return reviews.some(r => r.user_id === this.currentUserId);
+  }
+}
