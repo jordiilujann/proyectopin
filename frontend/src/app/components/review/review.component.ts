@@ -55,7 +55,7 @@ export class ReviewComponent implements OnInit {
   ) {}
 
   ngOnInit() {
-    // 1. Comprobar si venimos del Feed/Buscador con datos precargados (NUEVO)
+    // 1. Comprobar si venimos del Feed/Buscador con datos precargados
     const state = history.state;
     if (state && state.preSelected) {
       console.log('Recibido item preseleccionado:', state.preSelected);
@@ -71,9 +71,8 @@ export class ReviewComponent implements OnInit {
         genre: item.genre
       };
 
-      // Si es un track, intentamos obtener su duración y género igual que en selectItem
+      // Si es un track, intentamos obtener su duración y género
       if (item.type === 'track') {
-          // Intentar obtener duración si no viene
           this.spotifyService.getTrackById(item.id).subscribe({
             next: (track) => {
                 this.trackDurationMs = track.durationMs;
@@ -81,20 +80,16 @@ export class ReviewComponent implements OnInit {
             error: (e) => console.error('Error obteniendo duración track preseleccionado', e)
           });
 
-          // Intentar obtener género del artista
           if (item.artists && item.artists.length > 0) {
-             this.getArtistGenre(item.artists[0].id || item.artists[0]._id); // A veces Spotify devuelve _id
+             this.getArtistGenre(item.artists[0].id || item.artists[0]._id); 
           }
       } else if (item.type === 'artist' && !item.genre && item.id) {
-          // Si es artista y no tiene género, buscarlo
           this.getArtistGenre(item.id);
       }
-
-      // No necesitamos buscar nada más
       return;
     }
 
-    // 2. Comprobar si estamos en modo edición (Lógica original)
+    // 2. Comprobar si estamos en modo edición
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');
       if (id) {
@@ -122,16 +117,46 @@ export class ReviewComponent implements OnInit {
         const spotifyId = review.spotify_id || review.spotifyId; 
         const targetType = review.target_type || review.targetType;
 
-        this.selectedItem = {
-           id: spotifyId,
-           name: review.item_name || 'Contenido guardado',
-           type: targetType,
-           coverUrl: review.cover_url || review.coverUrl,
-           // Intentar recuperar artistas si están guardados en la reseña original
-           // (asumiendo que el backend los guarda o el frontend los tiene)
-        };
+        // CORRECCIÓN: Recuperar info fresca de Spotify usando el ID
+        this.reviewService.getSpotifyItemInfo(spotifyId, targetType).subscribe({
+          next: (item: any) => {
+            // Determinar URL de imagen según el tipo de respuesta de Spotify
+            let coverUrl = item.coverUrl;
+            if (!coverUrl && item.images && item.images.length > 0) coverUrl = item.images[0].url;
+            if (!coverUrl && item.album && item.album.images && item.album.images.length > 0) coverUrl = item.album.images[0].url;
 
-        this.isLoading = false;
+            this.selectedItem = {
+               id: spotifyId,
+               name: item.name, // ¡Nombre real de la canción!
+               type: targetType,
+               coverUrl: coverUrl,
+               artists: item.artists,
+               genre: item.genres ? item.genres[0] : undefined
+            };
+
+            // Si es canción, pillar duración para validar timestamp
+            if (targetType === 'track') {
+              this.trackDurationMs = item.duration_ms || item.durationMs;
+              // Intentar pillar género si no vino directo
+              if (!this.selectedItem.genre && item.artists && item.artists.length > 0) {
+                this.getArtistGenre(item.artists[0].id);
+              }
+            }
+
+            this.isLoading = false;
+          },
+          error: (err) => {
+            console.error('Error cargando info de Spotify en edición:', err);
+            // Fallback si falla la API: usar datos guardados si existen o genéricos
+            this.selectedItem = {
+               id: spotifyId,
+               name: review.item_name || 'Elemento desconocido', 
+               type: targetType,
+               coverUrl: review.item_cover_url
+            };
+            this.isLoading = false;
+          }
+        });
       },
       error: (err) => {
         console.error(err);
@@ -331,7 +356,7 @@ export class ReviewComponent implements OnInit {
         this.reviewService.deleteReview(this.reviewId).subscribe({
           next: () => {
             alert('Reseña eliminada');
-            this.router.navigate(['/app/reviews']);
+            this.router.navigate(['/app/feed']);
           },
           error: (err) => this.error = 'Error al eliminar'
         });
