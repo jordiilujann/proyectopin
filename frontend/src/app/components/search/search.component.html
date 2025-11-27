@@ -175,9 +175,22 @@
                 <p class="text-sm text-zinc-400">{{ user.email }}</p>
                 <p class="text-sm text-zinc-500">{{ user.country || 'País no especificado' }} · {{ user.premium ? 'Premium' : 'Básico' }}</p>
               </div>
-              <button class="bg-gradient-to-r from-blue-600 to-purple-700 text-zinc-100 px-4 py-1 rounded-full text-sm hover:from-blue-700 hover:to-purple-800 transition-colors">
-                Seguir
+              <button
+                (click)="toggleFollow(user)"
+                class="px-4 py-1 rounded-full text-sm transition-colors"
+                [class.bg-gradient-to-r]="!user.isFollowing"
+                [class.from-blue-600]="!user.isFollowing"
+                [class.to-purple-700]="!user.isFollowing"
+                [class.text-zinc-100]="true"
+                [class.hover\:from-blue-700]="!user.isFollowing"
+                [class.hover\:to-purple-800]="!user.isFollowing"
+                [class.bg-zinc-700]="user.isFollowing"
+                [class.hover\:bg-zinc-600]="user.isFollowing"
+>
+                {{ user.isFollowing ? 'Dejar de seguir' : 'Seguir' }}
               </button>
+
+
             </div>
           </div>
         </div>

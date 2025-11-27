@@ -4,6 +4,8 @@ import reviewRoutes from "./reviews/reviewRoutes.js";
 import userRoutes from "./users/userRoutes.js";
 import commentRoutes from "./comments/commentRoutes.js";
 import * as authController from "../controllers/auth/authController.js";
+import followRoutes from "./follows/followRoutes.js";
+
 
 const router = Router();
 
@@ -13,6 +15,7 @@ router.use("/spotify", spotifyRoutes);
 router.use("/reviews", reviewRoutes);
 router.use("/users", userRoutes);
 router.use("/comments", commentRoutes);
+router.use("/follows", followRoutes);
 
 export default router;
 

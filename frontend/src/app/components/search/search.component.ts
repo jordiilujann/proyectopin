@@ -4,6 +4,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ReviewService } from '../../services/review.service';
 import { Router } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
+
 
 interface SpotifyTrack {
   id: string;
@@ -23,6 +25,7 @@ interface User {
   spotify_id: string;
   country: string;
   premium: boolean;
+  isFollowing?: boolean;
 }
 
 @Component({
@@ -40,12 +43,16 @@ export class SearchComponent {
   error: string = '';
   selectedItemReviews: any[] = []; 
   selectedItemId: string = '';
+  currentUserId: string | null = null;
+  isFollowing: { [userId: string]: boolean } = {};
+
 
   constructor(
     private http: HttpClient, 
     private cdr: ChangeDetectorRef,
     private reviewService: ReviewService,
-    private router: Router
+    private router: Router,
+    private auth: AuthService
   ) {}
 
   search() {
@@ -84,9 +91,14 @@ export class SearchComponent {
     this.http.get<any[]>(`/api/users?name=${encodeURIComponent(this.searchQuery)}`)
       .subscribe({
         next: (results) => {
-          this.userResults = results;
+          // Por ahora todos como "no seguidos" (para testear follow/unfollow)
+          this.userResults = results.map(u => ({
+            ...u,
+            isFollowing: false
+          }));
           this.isLoading = false;
-        },
+      },
+
         error: (error) => {
           this.error = 'Error al buscar usuarios';
           this.isLoading = false;
@@ -94,6 +106,43 @@ export class SearchComponent {
         }
       });
   }
+
+
+      toggleFollow(user: User) {
+    if (!user._id) return;
+
+    const url = '/api/follows';
+    const body = { targetUserId: user._id };
+
+    // Solo para ver en consola que el click funciona
+    console.log('[Search] toggleFollow para', user.name, 'isFollowing=', user.isFollowing);
+
+    // Si ya le sigues → DELETE (unfollow)
+    if (user.isFollowing) {
+      this.http.delete(url, { body }).subscribe({
+        next: (res) => {
+          console.log('[Search] Unfollow OK', res);
+          user.isFollowing = false;
+        },
+        error: (err) => {
+          console.error('[Search] Error al dejar de seguir', err);
+        }
+      });
+    } else {
+      // Si no le sigues → POST (follow)
+      this.http.post(url, body).subscribe({
+        next: (res) => {
+          console.log('[Search] Follow OK', res);
+          user.isFollowing = true;
+        },
+        error: (err) => {
+          console.error('[Search] Error al seguir', err);
+        }
+      });
+    }
+  }
+
+
 
   setActiveTab(tab: 'spotify' | 'users') {
     this.activeTab = tab;
