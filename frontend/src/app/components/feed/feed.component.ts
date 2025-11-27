@@ -1,4 +1,4 @@
-import { Component, OnInit, HostListener } from '@angular/core';
+import { Component, OnInit, HostListener, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReviewService } from '../../services/review.service';
 import { Review, ReviewResponse } from '../../models/review.model';
@@ -18,10 +18,15 @@ export class FeedComponent implements OnInit {
   activeMenuId: string | null = null;
   currentUserId: string | null = null;
   currentUserName: string | null = null;
+  selectedItemId: string = '';
+  selectedItemReviews: any[] = [];
+  isLoadingReviews: boolean = false;
 
   constructor(
     private reviewService: ReviewService,
-    private auth: AuthService
+    private auth: AuthService,
+    private cdr: ChangeDetectorRef
+
   ) {}
 
   toggleMenu(event: Event, reviewId: string) {
@@ -192,4 +197,28 @@ export class FeedComponent implements OnInit {
     const seconds = totalSeconds % 60;
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   }
-}
+  viewItemReviews(spotifyId: string, targetType: string) {
+    if (this.selectedItemId === spotifyId) {
+      this.selectedItemId = '';
+      this.selectedItemReviews = [];
+      return;
+    }
+
+    this.selectedItemId = spotifyId;
+    this.isLoadingReviews = true;
+
+    // Convertimos el targetType genérico a uno válido si hace falta, o lo pasamos directo
+    this.reviewService.getReviewsBySpotifyId(spotifyId, targetType).subscribe({
+      next: (reviews) => {
+        this.selectedItemReviews = reviews;
+        this.isLoadingReviews = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error cargando reseñas extra', err);
+        this.isLoadingReviews = false;
+      }
+    });
+  }
+}//
+

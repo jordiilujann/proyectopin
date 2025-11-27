@@ -55,6 +55,46 @@ export class ReviewComponent implements OnInit {
   ) {}
 
   ngOnInit() {
+    // 1. Comprobar si venimos del Feed/Buscador con datos precargados (NUEVO)
+    const state = history.state;
+    if (state && state.preSelected) {
+      console.log('Recibido item preseleccionado:', state.preSelected);
+      const item = state.preSelected;
+      
+      // Simulamos la selección del item
+      this.selectedItem = {
+        id: item.id,
+        name: item.name,
+        type: item.type,
+        coverUrl: item.coverUrl,
+        artists: item.artists,
+        genre: item.genre
+      };
+
+      // Si es un track, intentamos obtener su duración y género igual que en selectItem
+      if (item.type === 'track') {
+          // Intentar obtener duración si no viene
+          this.spotifyService.getTrackById(item.id).subscribe({
+            next: (track) => {
+                this.trackDurationMs = track.durationMs;
+            },
+            error: (e) => console.error('Error obteniendo duración track preseleccionado', e)
+          });
+
+          // Intentar obtener género del artista
+          if (item.artists && item.artists.length > 0) {
+             this.getArtistGenre(item.artists[0].id || item.artists[0]._id); // A veces Spotify devuelve _id
+          }
+      } else if (item.type === 'artist' && !item.genre && item.id) {
+          // Si es artista y no tiene género, buscarlo
+          this.getArtistGenre(item.id);
+      }
+
+      // No necesitamos buscar nada más
+      return;
+    }
+
+    // 2. Comprobar si estamos en modo edición (Lógica original)
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');
       if (id) {
@@ -75,7 +115,6 @@ export class ReviewComponent implements OnInit {
         this.content = review.content;
         this.rating = review.rating || review.puntuacion;
         
-        // RECUPERAR DATOS DEL COMPAÑERO (Timestamp)
         if (review.timestamp_ms) {
             this.timestampMs = review.timestamp_ms;
         }
@@ -87,7 +126,9 @@ export class ReviewComponent implements OnInit {
            id: spotifyId,
            name: review.item_name || 'Contenido guardado',
            type: targetType,
-           coverUrl: review.cover_url || review.coverUrl
+           coverUrl: review.cover_url || review.coverUrl,
+           // Intentar recuperar artistas si están guardados en la reseña original
+           // (asumiendo que el backend los guarda o el frontend los tiene)
         };
 
         this.isLoading = false;
@@ -341,6 +382,7 @@ export class ReviewComponent implements OnInit {
   }
 
   getArtistNames(artists: { name: string }[]): string {
+    if (!artists) return '';
     return artists.map(artist => artist.name).join(', ');
   }
 }

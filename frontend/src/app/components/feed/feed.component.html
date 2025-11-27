@@ -1,19 +1,16 @@
 <div class="min-h-screen bg-white py-8">
   <div class="max-w-2xl mx-auto px-4">
-    <!-- Header del feed -->
     <div class="mb-8 text-center">
       <h1 class="text-3xl font-bold text-gray-900 mb-2">Muro de Reseñas</h1>
       <p class="text-gray-600">Descubre las últimas reseñas musicales de la comunidad</p>
     </div>
 
-    <!-- Lista de reseñas -->
     <div class="space-y-6">
       @for (review of reviews; track review._id) {
-        <!-- Tarjeta de reseña -->
-        <div class="bg-zinc-800 rounded-xl shadow-lg p-6 border border-zinc-700">
-          <!-- Header de la reseña - Usuario -->
+        <div class="bg-zinc-800 rounded-xl shadow-lg p-6 border border-zinc-700 transition-all duration-200 hover:border-zinc-600">
+          
           <div class="flex items-center space-x-4 mb-4">
-            <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+            <div class="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center shadow-lg">
               <span class="text-white font-bold text-sm">{{ review.user_name?.charAt(0) || 'U' }}</span>
             </div>
             <div>
@@ -22,14 +19,12 @@
             </div>
           </div>
 
-          <!-- Información del item musical -->
-          <div class="flex items-center space-x-4 mb-4 p-3 bg-zinc-700 rounded-lg">
-            <!-- Carátula de Spotify o icono por defecto -->
+          <div class="flex items-center space-x-4 mb-4 p-3 bg-zinc-700/50 rounded-lg border border-zinc-600/30">
             @if (review.item_cover_url) {
               <img 
                 [src]="review.item_cover_url" 
                 alt="Carátula" 
-                class="w-16 h-16 rounded-lg object-cover"
+                class="w-16 h-16 rounded-lg object-cover shadow-md"
                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'"
               >
             }
@@ -39,65 +34,64 @@
             >
               <span class="text-2xl">{{ getItemTypeIcon(review.target_type) }}</span>
             </div>
-            <div class="flex-1">
-              <h4 class="font-semibold text-white text-lg">{{ review.item_name || review.spotify_id }}</h4>
-              <!-- Artistas -->
+            <div class="flex-1 min-w-0">
+              <h4 class="font-semibold text-white text-lg truncate">{{ review.item_name || review.spotify_id }}</h4>
               @if (review.item_artists && review.item_artists.length > 0) {
-                <p class="text-sm text-zinc-400">
+                <p class="text-sm text-zinc-400 truncate">
                   {{ review.item_artists.join(', ') }}
                 </p>
               }
-              <p class="text-sm text-zinc-500">{{ review.target_type | titlecase }}</p>
-              @if (review.genre) {
-                <p class="text-xs text-zinc-400">{{ review.genre }}</p>
-              }
+              <div class="flex items-center gap-2 mt-1">
+                <span class="text-xs px-2 py-0.5 rounded-full bg-zinc-600 text-zinc-300 border border-zinc-500/50">
+                  {{ review.target_type | titlecase }}
+                </span>
+                @if (review.genre) {
+                  <span class="text-xs text-zinc-400">• {{ review.genre }}</span>
+                }
+              </div>
             </div>
           </div>
 
-          <!-- Rating con estrellas -->
-          <div class="mb-4">
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-center space-x-1">
               @for (star of getStarRating(review.rating); track $index) {
-                <span class="text-xl {{ star === '★' ? 'text-yellow-400' : 'text-zinc-500' }}">
+                <span class="text-xl {{ star === '★' ? 'text-yellow-400' : 'text-zinc-600' }}">
                   {{ star }}
                 </span>
               }
-              <span class="text-zinc-400 ml-2">{{ review.rating }}/5</span>
+              <span class="text-zinc-400 ml-2 text-sm font-medium">{{ review.rating }}/5</span>
             </div>
+
+            <button 
+              (click)="viewItemReviews(review.spotify_id || '', review.target_type)"
+              class="text-xs font-medium text-blue-300 hover:text-blue-200 transition-colors px-3 py-1.5 rounded-full bg-blue-900/30 hover:bg-blue-800/40 border border-blue-500/30 flex items-center gap-2"
+              title="Ver qué opinan otros usuarios sobre esta canción"
+            >
+              <span>🔍</span> 
+              <span>
+                {{ selectedItemId === review.spotify_id ? 'Ocultar opiniones' : 'Más opiniones de: ' + (review.item_name || 'esta obra') }}
+              </span>
+            </button>
           </div>
 
-          <!-- Título de la reseña -->
           <div class="mb-3">
-            <h4 class="font-semibold text-white text-xl">{{ review.title }}</h4>
-            <!-- Momento exacto (solo para tracks) -->
-            @if (review.target_type === 'track' && review.timestamp_ms !== null && review.timestamp_ms !== undefined) {
-              <div class="mt-2 inline-flex items-center space-x-2 px-3 py-1 bg-blue-600/20 border border-blue-500/30 rounded-full">
-                <span class="text-blue-400 text-sm">⏱️</span>
-                <span class="text-blue-300 text-sm font-medium">
-                  Momento: {{ formatDuration(review.timestamp_ms) }}
-                </span>
-              </div>
-            }
+            <h4 class="font-bold text-white text-xl">{{ review.title }}</h4>
           </div>
 
-          <!-- Contenido de la reseña -->
-          <div class="mb-4">
-            <p class="text-zinc-300 leading-relaxed text-base">{{ review.content }}</p>
+          <div class="mb-6">
+            <p class="text-zinc-300 leading-relaxed text-base whitespace-pre-line">{{ review.content }}</p>
           </div>
 
-          <!-- Acciones - Likes y Comentarios -->
           <div class="flex items-center justify-between pt-4 border-t border-zinc-700">
             <div class="flex items-center space-x-6">
-              <!-- Botón Like -->
               <button 
                 (click)="likeReview(review)"
-                class="flex items-center space-x-2 text-zinc-400 hover:text-red-500 transition-colors"
+                class="flex items-center space-x-2 text-zinc-400 hover:text-red-500 transition-colors group"
               >
-                <span class="text-xl">❤️</span>
+                <span class="text-xl group-hover:scale-110 transition-transform">❤️</span>
                 <span class="font-medium">{{ review.likes }}</span>
               </button>
 
-              <!-- Botón Comentar (no funcional) -->
               <button 
                 class="flex items-center space-x-2 text-zinc-400 hover:text-blue-500 transition-colors"
                 disabled
@@ -107,55 +101,76 @@
               </button>
             </div>
 
-            <!-- Compartir / acciones -->
-            <div class="flex items-center space-x-4 relative">
-              <button class="text-zinc-400 hover:text-green-500 transition-colors">
-                <span class="text-xl">↗️</span>
-              </button>
+            <button class="text-zinc-400 hover:text-green-500 transition-colors">
+              <span class="text-xl">↗️</span>
+            </button>
+          </div>
 
-              @if ((review.user_id && currentUserId && review.user_id === currentUserId) || (review.user_name && currentUserName && review.user_name === currentUserName)) {
-                <div class="relative">
-                  <button (click)="toggleMenu($event, review._id!)" class="text-zinc-400 hover:text-white transition-colors">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                    </svg>
-                  </button>
+          @if (selectedItemId === review.spotify_id) {
+            <div class="mt-6 pt-6 border-t border-zinc-700 bg-zinc-900/30 -mx-6 -mb-6 p-6 rounded-b-xl animate-fadeIn">
+              <h5 class="text-zinc-400 text-xs font-bold uppercase tracking-wider mb-4">
+                Opiniones de la comunidad sobre "{{ review.item_name }}"
+              </h5>
 
-                  @if (activeMenuId === review._id) {
-                    <div class="absolute right-0 bottom-8 w-32 bg-zinc-900 border border-zinc-700 rounded shadow-xl z-10 overflow-hidden">
-                      <button 
-                        [routerLink]="['/app/review', review._id]" 
-                        class="w-full text-left px-4 py-2 text-sm text-zinc-200 hover:bg-zinc-800 transition-colors">
-                        Editar
-                      </button>
+              @if (isLoadingReviews) {
+                <div class="flex justify-center py-4">
+                  <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
+                </div>
+              }
+
+              @if (!isLoadingReviews) {
+                <div class="space-y-3">
+                  @for (otherReview of selectedItemReviews; track otherReview._id) {
+                    @if (otherReview._id !== review._id) {
+                      <div class="bg-zinc-800 p-4 rounded-lg border border-zinc-700 hover:border-zinc-600 transition-colors">
+                        <div class="flex justify-between items-start mb-2">
+                          <div class="flex items-center gap-2">
+                            <div class="w-6 h-6 bg-zinc-700 rounded-full flex items-center justify-center">
+                              <span class="text-xs text-zinc-300 font-bold">{{ otherReview.user_name?.charAt(0) || 'U' }}</span>
+                            </div>
+                            <span class="text-zinc-200 font-semibold text-sm">{{ otherReview.user_name }}</span>
+                          </div>
+                          <div class="flex text-yellow-500 text-xs">
+                            <span>★</span> <span class="text-zinc-400 ml-1">{{ otherReview.rating }}</span>
+                          </div>
+                        </div>
+                        <p class="text-zinc-100 font-medium text-sm mb-1">{{ otherReview.title }}</p>
+                        <p class="text-zinc-400 text-sm">{{ otherReview.content }}</p>
+                      </div>
+                    }
+                  }
+                  
+                  @if (selectedItemReviews.length <= 1) {
+                    <div class="text-center py-4 text-zinc-500 italic text-sm">
+                      No hay otras reseñas para esta canción. ¡Sé el primero en añadir otra!
                     </div>
                   }
                 </div>
               }
             </div>
-          </div>
+          }
+
         </div>
       }
 
-      <!-- Loading indicator -->
       @if (loading) {
-        <div class="text-center py-8">
-          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-white"></div>
-          <p class="text-zinc-400 mt-2">Cargando reseñas...</p>
+        <div class="text-center py-12">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+          <p class="text-zinc-500 mt-3">Cargando el feed...</p>
         </div>
       }
 
-      <!-- No hay reseñas -->
       @if (reviews.length === 0 && !loading) {
-        <div class="text-center py-8">
-          <p class="text-zinc-400">No hay reseñas para mostrar</p>
+        <div class="text-center py-16 bg-zinc-50 rounded-xl border border-zinc-200">
+          <span class="text-4xl mb-2 block">📭</span>
+          <p class="text-gray-500">Aún no hay reseñas en el muro.</p>
+          <p class="text-gray-400 text-sm mt-1">¡Sé el primero en publicar una!</p>
         </div>
       }
 
-      <!-- Error message -->
       @if (error) {
-        <div class="bg-red-500/10 border border-red-500/20 rounded-lg p-4">
-          <p class="text-red-400">{{ error }}</p>
+        <div class="bg-red-50 border border-red-200 rounded-lg p-4 text-center">
+          <p class="text-red-600">{{ error }}</p>
         </div>
       }
     </div>

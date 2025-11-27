@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ReviewService } from '../../services/review.service';
+import { Router } from '@angular/router';
 
 interface SpotifyTrack {
   id: string;
@@ -38,12 +39,13 @@ export class SearchComponent {
   isLoading: boolean = false;
   error: string = '';
   selectedItemReviews: any[] = []; 
-  selectedItemName: string = '';
+  selectedItemId: string = '';
 
   constructor(
     private http: HttpClient, 
     private cdr: ChangeDetectorRef,
-    private reviewService: ReviewService
+    private reviewService: ReviewService,
+    private router: Router
   ) {}
 
   search() {
@@ -51,6 +53,7 @@ export class SearchComponent {
 
     this.isLoading = true;
     this.error = '';
+    this.selectedItemId = '';
 
     this.selectedItemReviews = [];
 
@@ -104,8 +107,15 @@ export class SearchComponent {
   }
 
   viewReviews(spotifyId: string, name: string, type: 'track' | 'artist' | 'album') {
-    this.selectedItemName = name;
-    this.isLoading = true;
+    // Usamos el ID para comparar, que es único
+  if (this.selectedItemId === spotifyId) {
+    this.selectedItemId = ''; // Cerrar si ya está abierto
+    this.selectedItemReviews = [];
+    return;
+  }
+
+  this.selectedItemId = spotifyId; //Guardamos el ID, no el nombre
+  this.isLoading = true;
     
     this.reviewService.getReviewsBySpotifyId(spotifyId, type).subscribe({
       next: (reviews) => {
@@ -121,4 +131,22 @@ export class SearchComponent {
       }
     });
   }
+
+  goToCreateReview(item: any, type: 'track' | 'artist' | 'album') {
+  // Preparamos el objeto tal como lo espera el ReviewComponent
+  const itemToPass = {
+    id: item.id,
+    name: item.name,
+    type: type,
+    coverUrl: item.coverUrl,
+    artists: item.artists, // Importante para buscar el género luego
+    // Si es un artista, a veces la propiedad de género viene aquí, si no, el ReviewComponent la buscará
+    genres: item.genres 
+  };
+
+  // Navegamos a la ruta '/app/review' pasando el objeto en el 'state'
+  this.router.navigate(['/app/review'], { 
+    state: { preSelected: itemToPass } 
+  });
+}
 }
