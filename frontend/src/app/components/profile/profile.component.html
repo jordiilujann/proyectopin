@@ -23,8 +23,9 @@
             {{ profile.email }} · {{ profile.country }}
           </p>
           <p class="text-sm text-zinc-400">
-            Seguidores: {{ profile.followers?.total || 0 }}
+            Seguidores: {{ followersCount }}
           </p>
+
         </div>
         <button
           (click)="logout()"

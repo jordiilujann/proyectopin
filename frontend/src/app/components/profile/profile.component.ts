@@ -18,6 +18,7 @@ export class ProfileComponent implements OnInit {
   profile: any = null;
   error = '';
   loading = true;
+  followersCount = 0;
 
   // ---- Tabs
   tab: Tab = 'overview';
@@ -60,6 +61,11 @@ export class ProfileComponent implements OnInit {
         // Dispara cargas en paralelo
         this.loadReviews();
         this.loadSpotifyBlocks();
+
+        const currentUserId = this.auth.getUserId();
+          if (currentUserId) {
+          this.loadFollowersCount(currentUserId);
+}
       },
       error: () => {
         this.loading = false;
@@ -84,6 +90,29 @@ export class ProfileComponent implements OnInit {
         error: () => { this.reviews = []; }
       });
   }
+
+  // -----------------------------
+  // Seguidores en Jarana (colección follows)
+  // -----------------------------
+  private loadFollowersCount(userId: string): void {
+  // Esta ruta usa followController.getFollowerCount
+  // GET /api/follows/followers/:userId/count
+    this.http
+      .get<{ userId: string; followers: number }>(
+        `${this.API_BASE}/api/follows/followers/${userId}/count`
+      )
+      .subscribe({
+        next: (res) => {
+          this.followersCount = res?.followers ?? 0;
+          console.log('[Profile] followersCount =', this.followersCount);
+        },
+        error: (err) => {
+          console.error('[Profile] error cargando followers', err);
+          this.followersCount = 0;
+        },
+      });
+  }
+
 
   private enrichReviews(reviews: any[]): void {
     if (!reviews.length) {
