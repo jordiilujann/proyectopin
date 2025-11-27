@@ -101,9 +101,37 @@
               </button>
             </div>
 
-            <button class="text-zinc-400 hover:text-green-500 transition-colors">
-              <span class="text-xl">↗️</span>
-            </button>
+            <div class="flex items-center space-x-3 relative">
+  
+              <button class="text-zinc-400 hover:text-green-500 transition-colors" title="Compartir">
+                <span class="text-xl">↗️</span>
+              </button>
+
+              @if (currentUserId === review.user_id) {
+                
+                <button 
+                  (click)="toggleMenu($event, review._id!)" 
+                  class="text-zinc-400 hover:text-white transition-colors p-1 rounded-full hover:bg-zinc-700/50">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                  </svg>
+                </button>
+
+                @if (activeMenuId === review._id) {
+                  <div class="absolute right-0 bottom-full mb-2 w-32 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl z-20 overflow-hidden ring-1 ring-black ring-opacity-5">
+                    <button 
+                      [routerLink]="['/app/review', review._id]" 
+                      class="w-full text-left px-4 py-2.5 text-sm text-zinc-200 hover:bg-zinc-800 transition-colors flex items-center gap-2">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                      Editar
+                    </button>
+                  </div>
+                }
+
+              }
+            </div>
           </div>
 
           @if (selectedItemId === review.spotify_id) {
