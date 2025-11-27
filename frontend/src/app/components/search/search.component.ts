@@ -5,6 +5,8 @@ import { FormsModule } from '@angular/forms';
 import { ReviewService } from '../../services/review.service';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { HttpHeaders } from '@angular/common/http';
+
 
 
 interface SpotifyTrack {
@@ -109,38 +111,51 @@ export class SearchComponent {
 
 
       toggleFollow(user: User) {
-    if (!user._id) return;
+  if (!user._id) return;
 
-    const url = '/api/follows';
-    const body = { targetUserId: user._id };
-
-    // Solo para ver en consola que el click funciona
-    console.log('[Search] toggleFollow para', user.name, 'isFollowing=', user.isFollowing);
-
-    // Si ya le sigues → DELETE (unfollow)
-    if (user.isFollowing) {
-      this.http.delete(url, { body }).subscribe({
-        next: (res) => {
-          console.log('[Search] Unfollow OK', res);
-          user.isFollowing = false;
-        },
-        error: (err) => {
-          console.error('[Search] Error al dejar de seguir', err);
-        }
-      });
-    } else {
-      // Si no le sigues → POST (follow)
-      this.http.post(url, body).subscribe({
-        next: (res) => {
-          console.log('[Search] Follow OK', res);
-          user.isFollowing = true;
-        },
-        error: (err) => {
-          console.error('[Search] Error al seguir', err);
-        }
-      });
-    }
+  // 1) Sacamos el token de Spotify que guardaste al hacer login
+  const accessToken = this.auth.getAccessToken();
+  if (!accessToken) {
+    console.warn('[Search] No hay accessToken de Spotify; haz login de nuevo.');
+    return;
   }
+
+  const url = '/api/follows';
+  const body = { targetUserId: user._id };
+
+  // 2) Header tal y como lo exige spotifyAuthMiddleware
+  const headers = new HttpHeaders({
+    Authorization: `Bearer ${accessToken}`,
+    'Content-Type': 'application/json',
+  });
+
+  console.log('[Search] toggleFollow para', user.name, 'isFollowing =', user.isFollowing);
+
+  if (user.isFollowing) {
+    // UNFOLLOW
+    this.http.delete(url, { body, headers }).subscribe({
+      next: (res) => {
+        console.log('[Search] Unfollow OK', res);
+        user.isFollowing = false;
+      },
+      error: (err) => {
+        console.error('[Search] Error al dejar de seguir', err);
+      }
+    });
+  } else {
+    // FOLLOW
+    this.http.post(url, body, { headers }).subscribe({
+      next: (res) => {
+        console.log('[Search] Follow OK', res);
+        user.isFollowing = true;
+      },
+      error: (err) => {
+        console.error('[Search] Error al seguir', err);
+      }
+    });
+  }
+}
+
 
 
 

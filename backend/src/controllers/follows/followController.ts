@@ -15,6 +15,7 @@ interface SpotifyRequest extends Request {
 export async function follow(req: SpotifyRequest, res: Response) {
   try {
     const currentUser = req.user;
+
     if (!currentUser?._id) {
       return res.status(401).json({ message: "Usuario no autenticado" });
     }

@@ -24,6 +24,7 @@ export async function getCurrentUserFromSpotify(req: Request, res: Response, nex
 
     // Adjuntar el usuario autenticado al request
     (req as any).currentUser = user;
+    (req as any).user = user;          // añadido para followController
     
     // Mostrar en consola el usuario que se ha autenticado
     console.log(`🔐 Usuario autenticado desde Spotify: ${user.name} (Spotify ID: ${user.spotify_id})`);
