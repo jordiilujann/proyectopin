@@ -92,23 +92,53 @@ export class SearchComponent implements OnInit {
   }
 
   searchUsers() {
-    this.http.get<any[]>(`/api/users?name=${encodeURIComponent(this.searchQuery)}`)
-      .subscribe({
-        next: (results) => {
-          // Por ahora todos como "no seguidos" (para testear follow/unfollow)
-          this.userResults = results.map(u => ({
-            ...u,
-            isFollowing: false
-          }));
-          this.isLoading = false;
-        },
-        error: (error) => {
-          this.error = 'Error al buscar usuarios';
-          this.isLoading = false;
-          console.error('Error searching users:', error);
-        }
-      });
+  this.http.get<User[]>(`/api/users?name=${encodeURIComponent(this.searchQuery)}`)
+    .subscribe({
+      next: (results) => {
+        // Primero cargamos la lista de usuarios encontrados
+        this.userResults = results.map(u => ({
+          ...u,
+          isFollowing: false   // valor por defecto
+        }));
+        this.isLoading = false;
+
+        // Después preguntamos al backend a quién sigue el usuario actual
+        this.updateFollowingFromBackend();
+      },
+      error: (error) => {
+        this.error = 'Error al buscar usuarios';
+        this.isLoading = false;
+        console.error('Error searching users:', error);
+      }
+    });
+}
+  private updateFollowingFromBackend() {
+  const currentUserId = this.auth.getUserId();
+
+  // Si no hay usuario logueado o no hay resultados, no hacemos nada
+  if (!currentUserId || !this.userResults.length) {
+    return;
   }
+
+  // Este endpoint YA lo tienes en el backend:
+  // GET /api/follows/following/:userId  -> devuelve la lista de usuarios que sigo
+  this.http.get<User[]>(`/api/follows/following/${currentUserId}`)
+    .subscribe({
+      next: (followingUsers) => {
+        const followingSet = new Set(followingUsers.map(u => u._id));
+
+        // Marcamos en los resultados si ya lo seguimos
+        this.userResults = this.userResults.map(user => ({
+          ...user,
+          isFollowing: followingSet.has(user._id)
+        }));
+      },
+      error: (err) => {
+        console.error('[Search] Error al cargar usuarios seguidos', err);
+      }
+    });
+}
+
 
   toggleFollow(user: User) {
     if (!user._id) return;
