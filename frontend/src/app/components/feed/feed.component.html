@@ -59,30 +59,58 @@
             </div>
           </div>
 
-          <div class="mb-4 flex flex-wrap items-center justify-between gap-2">
+          <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <!-- Bloque de rating + media -->
+          <div class="flex flex-wrap items-center gap-3">
+            <!-- Rating de ESTA reseña -->
             <div class="flex items-center space-x-1">
               @for (star of getStarRating(review.rating); track $index) {
-                <span class="text-xl {{ star === '★' ? 'text-yellow-400' : 'text-zinc-600' }}">
-                  {{ star }}
-                </span>
-              }
-              <span class="text-zinc-400 ml-2 text-sm font-medium">{{ review.rating }}/5</span>
-              <span class="text-zinc-500 ml-3 text-xs">
-                Promedio: {{ getAverageRatingForItem(review.spotify_id) }}/5
+              <span class="text-xl {{ star === '★' ? 'text-yellow-400' : 'text-zinc-700' }}">
+              {{ star }}
               </span>
-            </div>
+                }
+              <span class="text-zinc-200 ml-1 text-sm font-semibold">
+              {{ review.rating }}/5
+              </span>
+              </div>
 
-            <button 
-              (click)="viewItemReviews(review.spotify_id || '', review.target_type)"
-              class="text-xs font-medium text-blue-300 hover:text-blue-200 transition-colors px-3 py-1.5 rounded-full bg-blue-900/30 hover:bg-blue-800/40 border border-blue-500/30 flex items-center gap-2"
-              title="Ver qué opinan otros usuarios sobre esta canción"
-            >
-              <span>🔍</span> 
-              <span>
-                {{ selectedItemId === review.spotify_id ? 'Ocultar opiniones' : 'Más opiniones' }}
-              </span>
-            </button>
-          </div>
+                <!-- Píldora de promedio -->
+                  <div class="flex items-center gap-1 text-xs px-3 py-1 rounded-full 
+                    bg-zinc-700/70 border border-zinc-600/80">
+                    <span class="text-zinc-400 uppercase tracking-wide">
+                    Promedio
+                    </span>
+
+                <!-- Si hay reseñas para este ítem -->
+                    <ng-container *ngIf="getAverageRatingForItem(review.spotify_id) !== '-'; else noAverage">
+                      <span class="text-yellow-300 font-semibold">
+                        {{ getAverageRatingForItem(review.spotify_id) }}/5
+                      </span>
+                    </ng-container>
+
+                <!-- Si no hay reseñas suficientes para hacer media -->
+                    <ng-template #noAverage>
+                      <span class="text-zinc-500 font-semibold">
+                        -/5
+                      </span>
+                    </ng-template>
+                  </div>
+                </div>
+
+                <!-- Botón 'Más opiniones' -->
+                <button 
+                  (click)="viewItemReviews(review.spotify_id || '', review.target_type)"
+                  class="text-xs font-medium text-blue-300 hover:text-blue-200 transition-colors 
+                  px-3 py-1.5 rounded-full bg-blue-900/30 hover:bg-blue-800/40 
+                  border border-blue-500/30 flex items-center gap-2"
+                  title="Ver qué opinan otros usuarios sobre esta canción"
+                >
+                <span>🔍</span> 
+                <span>
+                  {{ selectedItemId === review.spotify_id ? 'Ocultar opiniones' : 'Más opiniones' }}
+                </span>
+               </button>
+              </div>
 
           <div class="mb-3">
             <h4 class="font-bold text-white text-xl">{{ review.title }}</h4>
