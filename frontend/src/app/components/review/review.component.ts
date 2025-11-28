@@ -44,6 +44,11 @@ export class ReviewComponent implements OnInit {
   private searchTimeout?: ReturnType<typeof setTimeout>;
   isEditMode: boolean = false;
   reviewId: string | null = null;
+  showModal: boolean = false;
+  modalType: 'success' | 'confirm' = 'success'; 
+  modalTitle: string = '';
+  modalMessage: string = '';
+  private pendingAction: () => void = () => {};
 
   constructor(
     private spotifyService: SpotifyService,
@@ -164,6 +169,33 @@ export class ReviewComponent implements OnInit {
         this.isLoading = false;
       }
     });
+  }
+
+  openSuccessModal(title: string, message: string, actionOnClose: () => void) {
+    this.modalType = 'success';
+    this.modalTitle = title;
+    this.modalMessage = message;
+    this.pendingAction = actionOnClose;
+    this.showModal = true;
+  }
+
+  openConfirmModal(title: string, message: string, actionOnConfirm: () => void) {
+    this.modalType = 'confirm';
+    this.modalTitle = title;
+    this.modalMessage = message;
+    this.pendingAction = actionOnConfirm;
+    this.showModal = true;
+  }
+
+  onModalConfirm() {
+    this.pendingAction(); 
+    if (this.modalType === 'confirm') {
+       this.showModal = false; 
+    }
+  }
+
+  closeModal() {
+    this.showModal = false;
   }
 
   search() {
@@ -316,14 +348,13 @@ export class ReviewComponent implements OnInit {
       // --- MODO EDICIÓN ---
       this.reviewService.updateReview(this.reviewId, reviewData).subscribe({
         next: (res) => {
-          console.log('Respuesta update:', res);
-          alert('Reseña actualizada exitosamente');
-          this.router.navigate(['/app/feed']); 
+          this.openSuccessModal(
+            '¡Reseña Actualizada!', 
+            'Los cambios se han guardado correctamente.', 
+            () => this.router.navigate(['/app/feed'])
+          );
         },
-        error: (err) => {
-          console.error('Error al actualizar:', err);
-          this.error = 'Error al actualizar: ' + (err.error?.message || err.message);
-        }
+        error: (err) => this.error = 'Error al actualizar: ' + (err.error?.message || err.message)
       });
     } else {
       // --- MODO CREACIÓN ---
@@ -337,14 +368,14 @@ export class ReviewComponent implements OnInit {
       
       this.http.post(`/api/reviews`, reviewData, { headers }).subscribe({
         next: (response) => {
-          console.log('Reseña creada:', response);
-          this.successMessage = '¡Reseña creada exitosamente!';
-          alert('Reseña creada exitosamente!');
-          this.router.navigate(['/app/feed']);
+          this.openSuccessModal(
+            '¡Reseña Publicada!', 
+            'Tu reseña se ha creado y publicado en el muro.', 
+            () => this.router.navigate(['/app/feed'])
+          );
         },
         error: (error) => {
           this.error = 'Error al crear la reseña';
-          console.error('Error creating review:', error);
         }
       });
     }
@@ -352,15 +383,19 @@ export class ReviewComponent implements OnInit {
 
   deleteReview() {
     if (this.isEditMode && this.reviewId) {
-      if (confirm('¿Estás seguro de eliminar esta reseña permanentemente?')) {
-        this.reviewService.deleteReview(this.reviewId).subscribe({
-          next: () => {
-            alert('Reseña eliminada');
-            this.router.navigate(['/app/feed']);
-          },
-          error: (err) => this.error = 'Error al eliminar'
-        });
-      }
+      this.openConfirmModal(
+        '¿Eliminar Reseña?',
+        'Esta acción es irreversible. ¿Estás seguro?',
+        () => {
+          this.reviewService.deleteReview(this.reviewId!).subscribe({
+            next: () => {
+              this.showModal = false;
+              this.router.navigate(['/app/feed']);
+            },
+            error: (err) => this.error = 'Error al eliminar'
+          });
+        }
+      );
     }
   }
 
