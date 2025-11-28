@@ -167,6 +167,20 @@ export class SearchComponent implements OnInit {
     return artists.map(artist => artist.name).join(', ');
   }
 
+  getAverageRating(reviews: any[]): string {
+    if (!reviews || reviews.length === 0) {
+      return '-'; // sin reseñas
+    }
+
+    const sum = reviews.reduce((acc, r) => {
+      const rating = Number(r.rating) || 0;
+      return acc + rating;
+    }, 0);
+
+    const avg = sum / reviews.length;
+    return avg.toFixed(1); // ej: "4.3"
+  }
+
   viewReviews(spotifyId: string, name: string, type: 'track' | 'artist' | 'album') {
     // Usamos el ID para comparar, que es único
     if (this.selectedItemId === spotifyId) {

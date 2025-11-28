@@ -115,6 +115,10 @@
                       <span class="bg-zinc-700 text-zinc-300 text-xs px-2 py-1 rounded-full">
                         {{ selectedItemReviews.length }} reseñas
                       </span>
+                      <!-- NUEVO: Media de valoraciones -->
+                      <span class="bg-zinc-700 text-zinc-300 text-xs px-2 py-1 rounded-full">
+                        Media: {{ getAverageRating(selectedItemReviews) }}/5
+                      </span>
                     </div>
                   
                     <!-- LÓGICA DE BOTONES: Crear vs Editar -->
@@ -159,7 +163,7 @@
                 <!-- CASO 2: NO HAY RESEÑAS (Estado Vacío) -->
                 <div *ngIf="!isLoading && selectedItemReviews.length === 0" class="text-center py-4 bg-zinc-900/30 rounded-lg border border-dashed border-zinc-700">
                   <p class="text-zinc-500 text-sm italic mb-2">Nadie ha reseñado esta canción aún.</p>
-                  
+                  <p class="text-zinc-600 text-xs mt-1">Media: -/5</p>
                   <button 
                     (click)="goToCreateReview(track, 'track')"
                     class="text-blue-400 hover:text-blue-300 text-sm font-medium hover:underline focus:outline-none flex items-center justify-center gap-1 w-full">
