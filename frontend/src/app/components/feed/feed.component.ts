@@ -187,6 +187,25 @@ export class FeedComponent implements OnInit {
     }
   }
 
+    getAverageRatingForItem(spotifyId: string | undefined | null): string {
+    if (!spotifyId) return '-';
+
+    const itemReviews = this.reviews.filter(
+      r => r.spotify_id === spotifyId && typeof r.rating === 'number'
+    );
+
+    if (itemReviews.length === 0) return '-';
+
+    const sum = itemReviews.reduce((acc, r) => {
+      const rating = Number(r.rating) || 0;
+      return acc + rating;
+    }, 0);
+
+    const avg = sum / itemReviews.length;
+    return avg.toFixed(1); // ej: "3.8"
+  }
+
+
   formatDuration(ms: number | null | undefined): string {
     if (!ms || ms < 0) return '0:00';
     const totalSeconds = Math.floor(ms / 1000);

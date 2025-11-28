@@ -67,6 +67,9 @@
                 </span>
               }
               <span class="text-zinc-400 ml-2 text-sm font-medium">{{ review.rating }}/5</span>
+              <span class="text-zinc-500 ml-3 text-xs">
+                Promedio: {{ getAverageRatingForItem(review.spotify_id) }}/5
+              </span>
             </div>
 
             <button 
