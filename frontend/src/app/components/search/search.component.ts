@@ -122,8 +122,14 @@ export class SearchComponent implements OnInit {
   this.http.get<User[]>(`/api/users?name=${encodeURIComponent(this.searchQuery)}`)
     .subscribe({
       next: (results) => {
-        // Primero cargamos la lista de usuarios encontrados
-        this.userResults = results.map(u => ({
+        // Filtrar el usuario actual de los resultados
+        const filteredResults = results.filter(u => {
+          const currentUserId = this.auth.getUserId();
+          return u._id !== currentUserId;
+        });
+
+        // Cargamos la lista de usuarios encontrados (sin el usuario actual)
+        this.userResults = filteredResults.map(u => ({
           ...u,
           isFollowing: false   // valor por defecto
         }));
