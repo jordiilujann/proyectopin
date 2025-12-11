@@ -8,7 +8,8 @@
     "ts:build": "tsc",
     "ts:watch": "tsc -w",
     "dev": "npm run ts:build && node --watch src/server.js",
-    "start": "npm run ts:build && node src/server.js"
+    "start": "npm run ts:build && node src/server.js",
+    "generate-notifications": "npm run ts:build && node --loader ts-node/esm src/scripts/generateNotifications.ts || node build/scripts/generateNotifications.js"
   },
   "keywords": [],
   "author": "",

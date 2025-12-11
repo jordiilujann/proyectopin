@@ -5,6 +5,7 @@ import userRoutes from "./users/userRoutes.js";
 import commentRoutes from "./comments/commentRoutes.js";
 import * as authController from "../controllers/auth/authController.js";
 import followRoutes from "./follows/followRoutes.js";
+import notificationRoutes from "./notifications/notificationRoutes.js";
 
 
 const router = Router();
@@ -16,6 +17,7 @@ router.use("/reviews", reviewRoutes);
 router.use("/users", userRoutes);
 router.use("/comments", commentRoutes);
 router.use("/follows", followRoutes);
+router.use("/notifications", notificationRoutes);
 
 export default router;
 

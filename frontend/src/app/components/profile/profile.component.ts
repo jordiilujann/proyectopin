@@ -1,5 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 import { AuthService } from '../../services/auth.service';
@@ -10,7 +11,7 @@ type Tab = 'overview' | 'reviews' | 'music';
 @Component({
   selector: 'app-profile',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
   templateUrl: './profile.component.html'
 })
 export class ProfileComponent implements OnInit {

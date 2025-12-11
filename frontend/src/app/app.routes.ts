@@ -6,6 +6,7 @@ import { FeedComponent }    from './components/feed/feed.component';
 import { SearchComponent }  from './components/search/search.component';
 import { ProfileComponent } from './components/profile/profile.component';
 import { ReviewComponent }  from './components/review/review.component';
+import { NotificationsComponent } from './components/notifications/notifications.component';
 import { authGuard, loginGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -26,6 +27,7 @@ export const routes: Routes = [
       { path: 'feed',    component: FeedComponent },
       { path: 'search',  component: SearchComponent },
       { path: 'profile', component: ProfileComponent },
+      { path: 'notifications', component: NotificationsComponent },
       { path: 'review',  component: ReviewComponent },
       { path: 'review/:id',  component: ReviewComponent },
       { path: 'reviews/create', component: ReviewComponent },

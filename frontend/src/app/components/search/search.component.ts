@@ -44,6 +44,7 @@ export class SearchComponent implements OnInit {
   selectedItemId: string = '';
   currentUserId: string | null = null;
   isFollowing: { [userId: string]: boolean } = {};
+  private searchTimeout?: ReturnType<typeof setTimeout>;
 
   constructor(
     private http: HttpClient, 
@@ -60,8 +61,34 @@ export class SearchComponent implements OnInit {
     });
   }
 
+  onSearchInput() {
+    // Limpiar timeout anterior si existe
+    if (this.searchTimeout) {
+      clearTimeout(this.searchTimeout);
+    }
+
+    // Si el campo está vacío, limpiar resultados
+    if (!this.searchQuery.trim()) {
+      this.spotifyResults = [];
+      this.userResults = [];
+      this.error = '';
+      this.selectedItemId = '';
+      this.selectedItemReviews = [];
+      return;
+    }
+
+    // Debounce: esperar 400ms después de que el usuario deje de escribir
+    this.searchTimeout = setTimeout(() => {
+      this.search();
+    }, 400);
+  }
+
   search() {
-    if (!this.searchQuery.trim()) return;
+    if (!this.searchQuery.trim()) {
+      this.spotifyResults = [];
+      this.userResults = [];
+      return;
+    }
 
     this.isLoading = true;
     this.error = '';
@@ -191,6 +218,13 @@ export class SearchComponent implements OnInit {
     this.spotifyResults = [];
     this.userResults = [];
     this.error = '';
+    this.selectedItemId = '';
+    this.selectedItemReviews = [];
+    
+    // Si hay una búsqueda activa, buscar automáticamente en la nueva pestaña
+    if (this.searchQuery.trim()) {
+      this.search();
+    }
   }
 
   getArtistNames(artists: { name: string }[]): string {

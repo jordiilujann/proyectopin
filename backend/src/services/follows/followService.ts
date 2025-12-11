@@ -7,12 +7,29 @@ export async function followUser(followerId: string, followingId: string) {
   }
 
   try {
+    // Verificar si ya existe el follow
+    const existingFollow = await Follow.findOne({
+      follower_id: followerId,
+      following_id: followingId
+    });
+
     // upsert para evitar duplicados si ya existe
     const follow = await Follow.findOneAndUpdate(
       { follower_id: followerId, following_id: followingId },
       {},
       { new: true, upsert: true, setDefaultsOnInsert: true }
     );
+
+    // Crear notificación solo si es un nuevo follow (no existía antes)
+    if (!existingFollow) {
+      try {
+        const { notifyNewFollower } = await import('../notifications/notificationService.js');
+        await notifyNewFollower(followerId, followingId);
+      } catch (notifError) {
+        // No fallar si la notificación falla
+        console.error('Error creando notificación de follow:', notifError);
+      }
+    }
 
     return follow;
   } catch (err: any) {

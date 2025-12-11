@@ -5,6 +5,20 @@ export async function createReview(reviewData: any) {
   try {
     const review = new Review(reviewData);
     await review.save();
+    
+    // Crear notificaciones para los seguidores del usuario que creó la reseña
+    try {
+      const { notifyFollowersNewReview } = await import('../notifications/notificationService.js');
+      await notifyFollowersNewReview(
+        review._id.toString(),
+        review.user_id,
+        review.title || 'Nueva reseña'
+      );
+    } catch (notifError) {
+      // No fallar si la notificación falla
+      console.error('Error creando notificaciones de nueva reseña:', notifError);
+    }
+    
     return review;
   } catch (error: any) {
     // Mostrar detalles específicos del error de validación
