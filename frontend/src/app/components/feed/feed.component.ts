@@ -21,6 +21,10 @@ export class FeedComponent implements OnInit {
   selectedItemId: string = '';
   selectedItemReviews: any[] = [];
   isLoadingReviews: boolean = false;
+  getRandomTime(): string {
+  const times = ['1 min', '5 min', '1h', '3h', '1d'];
+  return times[Math.floor(Math.random() * times.length)];
+}
 
   constructor(
     private reviewService: ReviewService,
@@ -28,6 +32,30 @@ export class FeedComponent implements OnInit {
     private cdr: ChangeDetectorRef,
     private router: Router // Inyección de Router
   ) {}
+
+
+  goToReviewItem(review: any) {
+    // 1. Si la reseña es mía, no hago nada (o podrías llevar a editar)
+    if (review.user_id === this.currentUserId) return;
+
+    // 2. Preparar el objeto con los datos limpios para el formulario
+    const itemToReview = {
+      id: review.spotify_id,
+      name: review.item_name,
+      type: review.target_type,
+      coverUrl: review.item_cover_url,
+      artists: review.item_artists ? review.item_artists.map((name: string) => ({ name })) : [],
+      genre: review.genre
+    };
+
+    console.log('Yendo a reseñar:', itemToReview);
+
+    // 3. Navegar pasando los datos en el estado
+    this.router.navigate(['/app/reviews/create'], { 
+      state: { preSelected: itemToReview } 
+    });
+  }
+
 
   toggleMenu(event: Event, reviewId: string) {
     event.stopPropagation();

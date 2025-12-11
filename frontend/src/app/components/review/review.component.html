@@ -1,293 +1,173 @@
-<div class="min-h-screen bg-zinc-900 text-zinc-100 p-4">
+<div class="min-h-screen bg-gradient-to-b from-[#451a1a] via-[#1a1a1a] to-black text-white pb-32 font-sans relative overflow-hidden">
   
-  <header class="flex justify-between items-center mb-8">
-    <button 
-      class="text-zinc-400 hover:text-zinc-200 transition-colors text-xl" 
-      [routerLink]="['/app/reviews']">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
-      </svg>
-    </button>
-    <h1 class="text-xl font-bold text-center">
-      {{ isEditMode ? 'Editar Reseña' : 'Crear Reseña' }}
-    </h1>
-    <div class="w-24"></div>
-  </header>
+  <div class="absolute top-[-100px] right-[-100px] w-[500px] h-[500px] bg-red-900/20 rounded-full blur-[120px] pointer-events-none z-0"></div>
+  <div class="absolute top-[10%] left-[-100px] w-[300px] h-[300px] bg-red-600/10 rounded-full blur-[100px] pointer-events-none z-0"></div>
 
-  <div class="max-w-md mx-auto">
-    <!-- Buscador -->
-    <section class="mb-6" *ngIf="!isEditMode">
-      <h2 class="text-lg font-semibold text-zinc-100 mb-3">Buscar contenido</h2>
-      <div class="flex space-x-2">
-        <input 
-          type="text"
-          [(ngModel)]="searchQuery"
-          (ngModelChange)="onSearchInput()"
-          (keyup.enter)="search()"
-          class="flex-1 p-3 bg-zinc-800 text-zinc-100 border border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 placeholder-zinc-500"
-          placeholder="Buscar canciones, álbumes o artistas..."
-        />
-        <button 
-          (click)="search()"
-          class="bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition-colors"
-          [disabled]="isLoading">
-          <svg *ngIf="isLoading" class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-          </svg>
-          <svg *ngIf="!isLoading" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-          </svg>
-        </button>
-      </div>
-      
-      <div *ngIf="error" class="mt-2 p-2 bg-red-600 text-white rounded text-sm">
-        {{ error }}
-      </div>
-    </section>
-
-    <!-- Resultados de búsqueda -->
-    <div *ngIf="searchResults.tracks.length > 0 || searchResults.albums.length > 0 || searchResults.artists.length > 0" class="mb-6">
-      <h3 class="text-md font-semibold text-zinc-100 mb-3">Resultados de búsqueda</h3>
-      
-      <!-- Canciones -->
-      <div *ngIf="searchResults.tracks.length > 0" class="mb-4">
-        <h4 class="text-sm font-medium text-zinc-400 mb-2">Canciones</h4>
-        <div class="space-y-2">
-          <div 
-            *ngFor="let track of searchResults.tracks"
-            (click)="selectItem(track, 'track')"
-            class="flex items-center p-3 bg-zinc-800 rounded-lg cursor-pointer hover:bg-zinc-700 transition-colors">
-            <img 
-              *ngIf="track.coverUrl" 
-              [src]="track.coverUrl" 
-              class="w-12 h-12 rounded-md mr-3"
-              alt="Portada"
-            />
-            <div class="flex-1">
-              <h4 class="font-semibold text-zinc-100">{{ track.name }}</h4>
-              <p class="text-sm text-zinc-400">{{ getArtistNames(track.artists) }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Álbumes -->
-      <div *ngIf="searchResults.albums.length > 0" class="mb-4">
-        <h4 class="text-sm font-medium text-zinc-400 mb-2">Álbumes</h4>
-        <div class="space-y-2">
-          <div 
-            *ngFor="let album of searchResults.albums"
-            (click)="selectItem(album, 'album')"
-            class="flex items-center p-3 bg-zinc-800 rounded-lg cursor-pointer hover:bg-zinc-700 transition-colors">
-            <img 
-              *ngIf="album.coverUrl" 
-              [src]="album.coverUrl" 
-              class="w-12 h-12 rounded-md mr-3"
-              alt="Portada"
-            />
-            <div class="flex-1">
-              <h4 class="font-semibold text-zinc-100">{{ album.name }}</h4>
-              <p class="text-sm text-zinc-400">{{ getArtistNames(album.artists) }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Artistas -->
-      <div *ngIf="searchResults.artists.length > 0" class="mb-4">
-        <h4 class="text-sm font-medium text-zinc-400 mb-2">Artistas</h4>
-        <div class="space-y-2">
-          <div 
-            *ngFor="let artist of searchResults.artists"
-            (click)="selectItem(artist, 'artist')"
-            class="flex items-center p-3 bg-zinc-800 rounded-lg cursor-pointer hover:bg-zinc-700 transition-colors">
-            <img 
-              *ngIf="artist.images && artist.images.length > 0" 
-              [src]="artist.images[0].url" 
-              class="w-12 h-12 rounded-full mr-3"
-              alt="Artista"
-            />
-            <div class="flex-1">
-              <h4 class="font-semibold text-zinc-100">{{ artist.name }}</h4>
-              <p class="text-sm text-zinc-400">{{ artist.genres?.join(', ') || 'Artista' }}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Item seleccionado -->
-    <section *ngIf="selectedItem" class="mb-6">
-      <h2 class="text-lg font-semibold text-zinc-100 mb-3">Contenido seleccionado</h2>
-      <div class="flex items-center p-3 bg-zinc-800 rounded-lg">
-        <img 
-          *ngIf="selectedItem.coverUrl" 
-          [src]="selectedItem.coverUrl" 
-          class="w-16 h-16 rounded-md mr-4"
-          alt="Portada"
-        />
-        <div class="flex-1">
-          <h3 class="font-bold text-zinc-100 text-lg">{{ selectedItem.name }}</h3>
-          <p class="text-sm text-zinc-300">
-            {{ selectedItem.type === 'track' ? 'Canción' : selectedItem.type === 'album' ? 'Álbum' : 'Artista' }}
-            <span *ngIf="selectedItem.artists"> • {{ getArtistNames(selectedItem.artists) }}</span>
-            <span *ngIf="selectedItem.genre"> • {{ selectedItem.genre }}</span>
-          </p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Sistema de estrellas -->
-    <section class="mb-6">
-      <h2 class="text-lg font-semibold text-zinc-100 mb-3 text-center">Tu valoración</h2>
-      
-      <div class="flex justify-center space-x-1">
-        <svg 
-          *ngFor="let star of [1,2,3,4,5]"
-          (click)="setRating(star)"
-          class="w-10 h-10 cursor-pointer transition-transform hover:scale-110"
-          [class.text-yellow-400]="star <= rating"
-          [class.text-zinc-600]="star > rating"
-          fill="currentColor" 
-          viewBox="0 0 20 20" 
-          xmlns="http://www.w3.org/2000/svg">
-          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-        </svg>
-      </div>
-      <p class="text-center text-sm text-zinc-400 mt-2">
-        {{ rating === 0 ? 'Toca las estrellas para valorar' : 'Valoración: ' + rating + '/5' }}
-      </p>
-    </section>
-
-    <!-- Formulario de reseña -->
-    <section class="mb-6">
-      <h2 class="text-lg font-semibold text-zinc-100 mb-2">Título</h2> 
-      <input 
-        type="text"
-        [(ngModel)]="title"
-        class="w-full p-3 bg-zinc-800 text-zinc-100 border border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 placeholder-zinc-500 mb-4"
-        placeholder="Añadir un título..."
-      />
-
-      <h2 class="text-lg font-semibold text-zinc-100 mb-2">Reseña</h2>
-      <textarea 
-        [(ngModel)]="content"
-        class="w-full h-40 p-3 bg-zinc-800 text-zinc-100 border border-zinc-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-600 placeholder-zinc-500"
-        placeholder="Añadir una reseña..."></textarea>
-    </section>
-
-    <!-- Momento exacto (solo para tracks) -->
-    <section *ngIf="selectedItem?.type === 'track'" class="mb-6">
-      <h2 class="text-lg font-semibold text-zinc-100 mb-2">Momento exacto de la canción</h2>
-      <div class="space-y-2">
-        <div class="flex items-center space-x-2">
-          <input 
-            type="range"
-            [(ngModel)]="timestampMs"
-            (input)="onTimestampInput($event)"
-            [min]="0"
-            [max]="trackDurationMs || 0"
-            [disabled]="!trackDurationMs"
-            class="flex-1 h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-blue-600"
-          />
-          <span class="text-zinc-300 text-sm font-medium min-w-[60px] text-right">
-            {{ formatTimestamp(timestampMs) }}
-          </span>
-        </div>
-        <p class="text-xs text-zinc-400">
-          Indica el momento exacto de la canción sobre el que haces la reseña (opcional)
-        </p>
-      </div>
-    </section>
-
-    <!-- Información automática -->
-    <section *ngIf="selectedItem" class="mb-6 p-3 bg-zinc-800 rounded-lg">
-      <h3 class="text-sm font-medium text-zinc-400 mb-2">Información automática</h3>
-      <div class="grid grid-cols-2 gap-2 text-sm">
-        <div>
-          <span class="text-zinc-400">Tipo:</span>
-          <span class="text-zinc-100 ml-2">{{ selectedItem.type }}</span>
-        </div>
-        <div>
-          <span class="text-zinc-400">Género:</span>
-          <span class="text-zinc-100 ml-2">{{ selectedItem.genre || 'No disponible' }}</span>
-        </div>
-        <div *ngIf="selectedItem.type === 'track'">
-          <span class="text-zinc-400">Momento exacto:</span>
-          <span class="text-zinc-100 ml-2">{{ formatTimestamp(timestampMs) }}</span>
-        </div>
-      </div>
-    </section>
-
-    <!-- Botón Publicar -->
-    <div class="flex flex-col gap-3 mb-6"> <button 
-        class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors text-base w-full"
-        [disabled]="!selectedItem || rating === 0"
-        (click)="submitReview()">
-        {{ isEditMode ? 'Guardar Cambios' : 'Publicar' }}
-      </button>
-
-      <button 
-        *ngIf="isEditMode"
-        class="bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors text-base w-full"
-        (click)="deleteReview()">
-        Eliminar Reseña
-      </button>
-
-    </div>
-
-    <div *ngIf="successMessage" class="mb-6 p-3 bg-green-700/30 border border-green-500/40 text-green-200 rounded-lg text-center text-sm">
-      {{ successMessage }}
-    </div>
-
-  </div>
-</div>
-
-@if (showModal) {
-<div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fadeIn">
-  
-  <div class="bg-zinc-800 border border-zinc-700 rounded-xl shadow-2xl max-w-sm w-full overflow-hidden transform transition-all scale-100">
+  <div class="max-w-md mx-auto px-4 pt-12 relative z-10">
     
-    <div class="p-6 text-center">
-      @if (modalType === 'success') {
-        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-900/30 mb-4">
-          <svg class="h-6 w-6 text-green-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-          </svg>
+    <h1 class="text-3xl font-bold mb-6 tracking-tight text-white drop-shadow-md">Para ti</h1>
+
+    <div class="space-y-4"> @for (review of reviews; track review._id) {
+        
+        <div class="flex flex-col animate-fadeIn">
+          
+          <div class="flex items-center gap-3 mb-2 px-1">
+            <div class="w-9 h-9 rounded-full bg-zinc-800 overflow-hidden border border-white/10 shadow-md">
+                <img 
+                *ngIf="review.user_name" 
+                [src]="'https://ui-avatars.com/api/?name=' + review.user_name + '&background=random'" 
+                alt="Avatar"
+                class="w-full h-full object-cover"
+                >
+            </div>
+            <div class="leading-tight">
+              <h3 class="font-bold text-sm text-zinc-100 shadow-black drop-shadow-sm">{{ review.user_name || 'Usuario' }}</h3>
+              <p class="text-[10px] text-zinc-400">@{{ (review.user_name || 'usuario').replace(' ', '').toLowerCase() }}</p>
+            </div>
+          </div>
+
+          <div 
+            class="bg-[#1C1C1C]/90 backdrop-blur-sm p-3 flex gap-4 relative overflow-hidden group border border-white/5 hover:border-white/10 transition-all items-start shadow-xl"
+            [ngClass]="selectedItemId === review.spotify_id ? 'rounded-t-2xl' : 'rounded-2xl'"
+          >
+            
+            <div class="shrink-0 relative">
+              <img 
+                [src]="review.item_cover_url" 
+                class="w-20 h-20 rounded-lg object-cover shadow-lg ring-1 ring-black/50"
+                alt="Cover"
+                onerror="this.src='assets/placeholder.png'" 
+              >
+              <div class="absolute top-1 right-1 bg-black/60 rounded-full p-1 backdrop-blur-md border border-white/10">
+                 <svg *ngIf="review.target_type === 'track'" class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg>
+                 <svg *ngIf="review.target_type === 'album'" class="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 14.5c-2.49 0-4.5-2.01-4.5-4.5S9.51 7.5 12 7.5s4.5 2.01 4.5 4.5-2.01 4.5-4.5 4.5zm0-5.5c-.55 0-1 .45-1 1s.45 1 1 1 1-.45 1-1-.45-1-1-1z"/></svg>
+              </div>
+            </div>
+
+            <div class="flex-1 min-w-0 flex flex-col">
+              
+              <div class="flex justify-between items-start">
+                <h4 
+                  class="font-bold text-zinc-100 text-sm truncate pr-2 transition-colors duration-200"
+                  [ngClass]="review.user_id !== currentUserId ? 'cursor-pointer hover:text-blue-400' : ''"
+                  (click)="goToReviewItem(review)"
+                >
+                  {{ review.item_name }} <span class="text-zinc-500 font-normal">· {{ review.item_artists?.[0] || 'Artista' }}</span>
+                </h4>
+              </div>
+
+              <div class="flex items-center justify-between mt-1 mb-1">
+                  <div class="flex items-center gap-2">
+                    <div class="flex text-zinc-400 text-xs">
+                        @for (star of [1,2,3,4,5]; track star) {
+                        <svg class="w-3 h-3" [class.text-white]="star <= review.rating" [class.fill-current]="star <= review.rating" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.784.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                        </svg>
+                        }
+                    </div>
+                    
+                    <ng-container *ngIf="getAverageRatingForItem(review.spotify_id) !== '-'">
+                        <span class="text-[9px] font-bold text-yellow-500 bg-yellow-500/10 px-1.5 py-0.5 rounded border border-yellow-500/20 whitespace-nowrap">
+                            Promedio {{ getAverageRatingForItem(review.spotify_id) }}/5
+                        </span>
+                    </ng-container>
+                  </div>
+
+                  <button 
+                    (click)="viewItemReviews(review.spotify_id || '', review.target_type)"
+                    class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 transition-colors">
+                    <span class="text-[10px] font-bold text-blue-400">
+                        {{ selectedItemId === review.spotify_id ? 'Cerrar' : 'Opiniones' }}
+                    </span>
+                  </button>
+              </div>
+
+              @if (review.target_type === 'track' && review.timestamp_ms && review.timestamp_ms > 0) {
+                <div class="mb-2">
+                    <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-zinc-800/80 text-zinc-300 text-[9px] font-medium border border-zinc-700/50">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-2.5 w-2.5 text-zinc-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        {{ formatDuration(review.timestamp_ms) }}
+                    </span>
+                </div>
+              }
+
+              <h5 class="text-xs font-bold text-white mb-0.5 mt-1">{{ review.title }}</h5>
+
+              <p class="text-xs text-zinc-300 leading-relaxed whitespace-pre-wrap break-words">
+                {{ review.content }}
+              </p>
+            </div>
+          </div>
+
+          @if (selectedItemId === review.spotify_id) {
+            <div class="bg-[#151515]/95 border-x border-b border-white/5 rounded-b-2xl p-4 animate-fadeIn mb-1 shadow-inner">
+                <div class="flex justify-between items-center mb-3">
+                    <span class="text-xs font-bold text-zinc-500 uppercase tracking-wide">Comunidad</span>
+                    @if (!isLoadingReviews && selectedItemReviews.length > 1 && !hasUserReviewed(selectedItemReviews)) {
+                        <button (click)="goToCreateReview(review)" class="text-[10px] bg-white text-black px-2 py-1 rounded font-bold hover:bg-zinc-200 transition-colors">
+                            + Añadir la tuya
+                        </button>
+                    }
+                </div>
+
+                @if (isLoadingReviews) {
+                    <div class="flex justify-center py-2"><div class="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div></div>
+                } @else {
+                    <div class="space-y-2">
+                        @for (other of selectedItemReviews; track other._id) {
+                            @if (other._id !== review._id) {
+                                <div class="bg-black/50 p-2 rounded border border-white/5 flex gap-2 items-start">
+                                    <div class="font-bold text-zinc-400 text-xs min-w-[60px]">{{ other.user_name }}</div>
+                                    <div class="flex-1 text-zinc-300 text-xs whitespace-pre-wrap break-words">{{ other.content }}</div>
+                                    <div class="text-yellow-500 text-[10px]">★{{ other.rating }}</div>
+                                </div>
+                            }
+                        }
+                        @if (selectedItemReviews.length <= 1) {
+                            <p class="text-center text-xs text-zinc-600">Nadie más ha opinado sobre esto.</p>
+                        }
+                    </div>
+                }
+            </div>
+          }
+
+          <div class="flex justify-end items-center gap-4 mt-1 px-2 relative mb-4">
+            
+            <button class="text-zinc-500 hover:text-red-500 transition-colors">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+            </button>
+            
+            @if (currentUserId === review.user_id) {
+                <div class="relative">
+                    <button (click)="toggleMenu($event, review._id!)" class="text-zinc-500 hover:text-white transition-colors rotate-90">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h.01M12 12h.01M19 12h.01M6 12a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0zm7 0a1 1 0 11-2 0 1 1 0 012 0z" />
+                        </svg>
+                    </button>
+
+                    @if (activeMenuId === review._id) {
+                        <div class="absolute bottom-full right-0 mb-2 w-32 bg-[#252525] border border-zinc-700 rounded-xl shadow-xl z-50 overflow-hidden animate-fadeIn">
+                            <button 
+                                [routerLink]="['/app/review', {id: review._id}]" 
+                                class="w-full text-left px-4 py-3 text-xs text-white hover:bg-white/10 transition-colors flex items-center gap-2">
+                                <span>✏️</span> Editar
+                            </button>
+                        </div>
+                    }
+                </div>
+            }
+          </div>
+
         </div>
       }
-      @if (modalType === 'confirm') {
-        <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-900/30 mb-4">
-          <svg class="h-6 w-6 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-          </svg>
-        </div>
-      }
 
-      <h3 class="text-lg font-medium leading-6 text-zinc-100 mb-2">{{ modalTitle }}</h3>
-      <p class="text-sm text-zinc-400">{{ modalMessage }}</p>
-    </div>
-
-    <div class="bg-zinc-900/50 px-4 py-3 sm:px-6 flex flex-row-reverse gap-2">
-      
-      <button 
-        type="button" 
-        class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 text-base font-medium text-white focus:outline-none sm:ml-3 sm:w-auto sm:text-sm transition-colors"
-        [ngClass]="modalType === 'success' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'"
-        (click)="onModalConfirm()">
-        {{ modalType === 'success' ? 'Aceptar' : 'Eliminar' }}
-      </button>
-
-      @if (modalType === 'confirm') {
-        <button 
-          type="button" 
-          class="mt-3 w-full inline-flex justify-center rounded-md border border-zinc-600 shadow-sm px-4 py-2 bg-zinc-800 text-base font-medium text-zinc-300 hover:bg-zinc-700 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm transition-colors"
-          (click)="closeModal()">
-          Cancelar
-        </button>
+      @if (reviews.length === 0 && !loading) {
+         <div class="text-center py-20 text-zinc-600">
+           <p>No hay reseñas aún.</p>
+         </div>
       }
     </div>
   </div>
 </div>
-}

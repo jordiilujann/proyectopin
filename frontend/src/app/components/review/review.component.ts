@@ -20,6 +20,7 @@ interface SelectedItem {
   artists?: { name: string }[];
   genre?: string;
   coverUrl?: string;
+  year?: string;
 }
 
 @Component({
@@ -223,60 +224,66 @@ export class ReviewComponent implements OnInit {
     });
   }
 
-  selectItem(item: SpotifyTrack | SpotifyAlbum | SpotifyArtist, type: 'track' | 'album' | 'artist') {
-    // Obtener la URL de la imagen según el tipo de item
+  selectItem(item: any, type: 'track' | 'album' | 'artist') {
+    // 1. Obtener URL de imagen
     let coverUrl: string | undefined;
-    
-    if ('coverUrl' in item && item.coverUrl) {
+    if (item.coverUrl) {
       coverUrl = item.coverUrl;
-    } else if ('images' in item && item.images.length > 0) {
+    } else if (item.images && item.images.length > 0) {
       coverUrl = item.images[0].url;
+    } else if (item.album && item.album.images && item.album.images.length > 0) {
+      // Caso extra: a veces la imagen del track está dentro del album
+      coverUrl = item.album.images[0].url;
     }
-    
+
+    // 2. Obtener el AÑO (Nueva lógica)
+    let year = '';
+    if (item.release_date) {
+      year = item.release_date.split('-')[0]; // De "2022-05-01" saca "2022"
+    } else if (item.album && item.album.release_date) {
+      year = item.album.release_date.split('-')[0];
+    }
+
+    // 3. Crear el objeto seleccionado
     this.selectedItem = {
       id: item.id,
       name: item.name,
       type: type,
-      coverUrl: coverUrl
+      coverUrl: coverUrl,
+      year: year // <--- Aignamos el año aquí
     };
 
-    // Extraer información adicional basada en el tipo
-    if (type === 'track' && 'artists' in item) {
+    // 4. Lógica específica por tipo
+    if (type === 'track') {
       this.timestampMs = 0;
       this.selectedItem.artists = item.artists;
-      // Obtener la duración de la canción
-      if ('durationMs' in item && item.durationMs) {
-        this.trackDurationMs = item.durationMs;
+      
+      // Duración
+      if (item.duration_ms || item.durationMs) {
+        this.trackDurationMs = item.duration_ms || item.durationMs;
       } else {
-        // Si no viene en el resultado de búsqueda, obtenerlo por ID
         this.spotifyService.getTrackById(item.id).subscribe({
-          next: (track) => {
-            this.trackDurationMs = track.durationMs;
-          },
-          error: (error) => {
-            console.error('Error getting track duration:', error);
-            this.trackDurationMs = null;
-          }
+          next: (track) => this.trackDurationMs = track.durationMs,
+          error: (e) => console.error(e)
         });
       }
-      // Para tracks, intentamos obtener el género del primer artista
-      if (item.artists.length > 0) {
+
+      // Género
+      if (item.artists && item.artists.length > 0) {
         this.getArtistGenre(item.artists[0].id);
       }
     } else {
-      // Si no es un track, limpiar la duración y el timestamp
       this.trackDurationMs = null;
       this.timestampMs = null;
     }
 
-    if (type === 'album' && 'artists' in item) {
+    if (type === 'album' && item.artists) {
       this.selectedItem.artists = item.artists;
-    } else if (type === 'artist' && 'genres' in item) {
-      // Para artistas, usamos el primer género disponible
+    } else if (type === 'artist' && item.genres) {
       this.selectedItem.genre = item.genres.length > 0 ? item.genres[0] : undefined;
     }
 
-    // Limpiar resultados de búsqueda después de seleccionar
+    // Limpiar buscador
     this.searchResults = { tracks: [], albums: [], artists: [] };
     this.searchQuery = '';
   }
