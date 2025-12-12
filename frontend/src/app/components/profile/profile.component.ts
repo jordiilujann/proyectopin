@@ -26,6 +26,7 @@ export class ProfileComponent implements OnInit {
 
   // ---- Datos backend (tus reseñas)
   reviews: any[] = [];
+  selectedReviewId: string | null = null; // Para trackear qué reseña está expandida
   // Cambia si necesitas otra URL para tu backend
   private readonly API_BASE = 'http://127.0.0.1:3000';
 
@@ -34,6 +35,9 @@ export class ProfileComponent implements OnInit {
   topTracks: any[] = [];
   playlists: any[] = [];
   recentlyPlayed: any[] = [];
+  selectedPlaylistId: string | null = null;
+  playlistTracks: { [playlistId: string]: any[] } = {};
+  loadingPlaylistTracks: { [playlistId: string]: boolean } = {};
 
   constructor(
     private auth: AuthService,
@@ -205,5 +209,85 @@ export class ProfileComponent implements OnInit {
 
   artistNames(track: any): string {
     return (track?.artists || []).map((a: any) => a.name).join(', ');
+  }
+
+  toggleReviewDetails(reviewId: string): void {
+    if (this.selectedReviewId === reviewId) {
+      this.selectedReviewId = null; // Cerrar si ya está abierto
+    } else {
+      this.selectedReviewId = reviewId; // Abrir la reseña seleccionada
+    }
+  }
+
+  isReviewExpanded(reviewId: string): boolean {
+    return this.selectedReviewId === reviewId;
+  }
+
+  formatDuration(ms: number | null | undefined): string {
+    if (!ms || ms < 0) return '0:00';
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  }
+
+  isArray(value: any): boolean {
+    return Array.isArray(value);
+  }
+
+  formatArtists(artists: any): string {
+    if (!artists) return '';
+    if (Array.isArray(artists)) {
+      return artists.join(', ');
+    }
+    return artists;
+  }
+
+  togglePlaylistTracks(playlistId: string): void {
+    if (this.selectedPlaylistId === playlistId) {
+      this.selectedPlaylistId = null; // Cerrar si ya está abierto
+    } else {
+      this.selectedPlaylistId = playlistId;
+      // Cargar las canciones si no están cargadas
+      if (!this.playlistTracks[playlistId]) {
+        this.loadPlaylistTracks(playlistId);
+      }
+    }
+  }
+
+  isPlaylistExpanded(playlistId: string): boolean {
+    return this.selectedPlaylistId === playlistId;
+  }
+
+  isLoadingPlaylist(playlistId: string): boolean {
+    return this.loadingPlaylistTracks[playlistId] === true;
+  }
+
+  getPlaylistTracks(playlistId: string): any[] {
+    return this.playlistTracks[playlistId] || [];
+  }
+
+  private loadPlaylistTracks(playlistId: string): void {
+    const token = this.auth.getAccessToken();
+    if (!token) return;
+
+    this.loadingPlaylistTracks[playlistId] = true;
+    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
+    const spotifyApi = 'https://api.spotify.com/v1';
+
+    // Obtener las canciones de la playlist
+    this.http.get<any>(`${spotifyApi}/playlists/${playlistId}/tracks?limit=50`, { headers })
+      .subscribe({
+        next: (response) => {
+          const tracks = (response.items || []).map((item: any) => item.track).filter((track: any) => track !== null);
+          this.playlistTracks[playlistId] = tracks;
+          this.loadingPlaylistTracks[playlistId] = false;
+        },
+        error: (error) => {
+          console.error('Error cargando canciones de playlist:', error);
+          this.playlistTracks[playlistId] = [];
+          this.loadingPlaylistTracks[playlistId] = false;
+        }
+      });
   }
 }

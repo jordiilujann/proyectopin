@@ -145,15 +145,98 @@
       <div class="bg-[#1e1e1e] rounded-2xl border border-white/5 p-4 min-h-[200px]">
         <h3 class="font-bold text-zinc-100 mb-4">Tu historial de críticas</h3>
         
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <div *ngFor="let r of reviews" class="group cursor-pointer relative">
-            <div class="aspect-square rounded-xl overflow-hidden shadow-lg relative">
-              <img [src]="r.album_image || r.item_cover_url || r.cover_url" class="w-full h-full object-cover transition duration-300 group-hover:scale-105 group-hover:opacity-40" alt="">
-              <div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                 <span class="text-yellow-400 font-bold text-xl">{{ r.rating }}/5</span>
+        <div class="space-y-4">
+          <div *ngFor="let r of reviews" class="bg-[#151515] rounded-xl border border-white/5 overflow-hidden transition-all"
+               [class.border-zinc-700]="isReviewExpanded(r._id)">
+            
+            <!-- Reseña compacta (siempre visible) -->
+            <div (click)="toggleReviewDetails(r._id)" class="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 cursor-pointer hover:bg-white/5 transition-colors">
+              <div class="group relative col-span-1">
+                <div class="aspect-square rounded-xl overflow-hidden shadow-lg relative">
+                  <img [src]="r.album_image || r.item_cover_url || r.cover_url" class="w-full h-full object-cover transition duration-300 group-hover:scale-105" alt="">
+                  <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <span class="text-yellow-400 font-bold text-xl">{{ r.rating }}/5</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="col-span-1 sm:col-span-2 flex flex-col justify-center min-w-0">
+                <h4 class="text-sm font-bold text-zinc-100 mb-1 truncate">{{ r.title || r.item_name || 'Sin título' }}</h4>
+                <p class="text-xs text-zinc-400 mb-2 truncate" *ngIf="r.item_artists && (isArray(r.item_artists) ? r.item_artists.length > 0 : r.item_artists)">
+                  {{ formatArtists(r.item_artists) }}
+                </p>
+                <div class="flex items-center gap-2">
+                  <div class="flex text-yellow-500 text-xs">
+                    @for (star of [1,2,3,4,5]; track star) {
+                      <span [class.text-yellow-500]="star <= r.rating" [class.text-zinc-600]="star > r.rating">
+                        {{ star <= r.rating ? '★' : '☆' }}
+                      </span>
+                    }
+                  </div>
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-zinc-500 ml-auto transition-transform"
+                       [class.rotate-180]="isReviewExpanded(r._id)"
+                       fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
               </div>
             </div>
-            <div class="mt-2 text-xs font-medium text-zinc-300 truncate">{{ r.title || r.album_title || 'Sin título' }}</div>
+
+            <!-- Contenido expandido -->
+            <div *ngIf="isReviewExpanded(r._id)" class="border-t border-white/5 p-4 animate-fadeIn">
+              <div class="space-y-3">
+                <!-- Información del item -->
+                <div class="flex items-start gap-3">
+                  <img [src]="r.album_image || r.item_cover_url || r.cover_url" class="w-16 h-16 rounded-lg object-cover shadow-md" alt="">
+                  <div class="flex-1 min-w-0">
+                    <h5 class="font-bold text-zinc-100 text-sm mb-1">{{ r.item_name || r.title || 'Sin título' }}</h5>
+                    <p class="text-xs text-zinc-400" *ngIf="r.item_artists && (isArray(r.item_artists) ? r.item_artists.length > 0 : r.item_artists)">
+                      {{ formatArtists(r.item_artists) }}
+                    </p>
+                    <p class="text-xs text-zinc-500 mt-1" *ngIf="r.target_type">
+                      {{ r.target_type === 'track' ? '🎵 Canción' : r.target_type === 'album' ? '💿 Álbum' : '👤 Artista' }}
+                    </p>
+                  </div>
+                </div>
+
+                <!-- Rating -->
+                <div class="flex items-center gap-2">
+                  <span class="text-sm font-bold text-zinc-300">Rating:</span>
+                  <div class="flex text-yellow-500 text-sm">
+                    @for (star of [1,2,3,4,5]; track star) {
+                      <span [class.text-yellow-500]="star <= r.rating" [class.text-zinc-600]="star > r.rating">
+                        {{ star <= r.rating ? '★' : '☆' }}
+                      </span>
+                    }
+                  </div>
+                  <span class="text-sm text-zinc-400 ml-2">{{ r.rating }}/5</span>
+                </div>
+
+                <!-- Timestamp si es track -->
+                <div *ngIf="r.target_type === 'track' && r.timestamp_ms && r.timestamp_ms > 0" class="flex items-center gap-2 text-xs text-zinc-400">
+                  <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                  <span>Momento clave: {{ formatDuration(r.timestamp_ms) }}</span>
+                </div>
+
+                <!-- Contenido de la reseña -->
+                <div *ngIf="r.content" class="bg-black/40 rounded-lg p-3 border border-zinc-800">
+                  <p class="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">{{ r.content }}</p>
+                </div>
+
+                <!-- Botón para editar -->
+                <div class="flex justify-end pt-2">
+                  <a [routerLink]="['/app/review', {id: r._id}]" 
+                     class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Editar reseña
+                  </a>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -168,14 +251,62 @@
       
       <div class="bg-[#1e1e1e] rounded-2xl shadow-sm border border-white/5 p-4">
         <h3 class="font-bold text-zinc-100 mb-4">Tus Playlists</h3>
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          <div *ngFor="let p of playlists" class="group cursor-pointer">
-            <div class="rounded-lg overflow-hidden shadow-md border border-white/5 aspect-square">
-              <img [src]="p.images?.[0]?.url" class="w-full h-full object-cover group-hover:opacity-80 transition" alt="">
+        <div class="space-y-4">
+          <div *ngFor="let p of playlists" class="bg-[#151515] rounded-xl border border-white/5 overflow-hidden transition-all"
+               [class.border-zinc-700]="isPlaylistExpanded(p.id)">
+            
+            <!-- Playlist compacta (siempre visible) -->
+            <div (click)="togglePlaylistTracks(p.id)" class="flex items-center gap-4 p-3 cursor-pointer hover:bg-white/5 transition-colors">
+              <div class="w-16 h-16 rounded-lg overflow-hidden shadow-md border border-white/5 flex-shrink-0">
+                <img [src]="p.images?.[0]?.url" class="w-full h-full object-cover" alt="">
+              </div>
+              <div class="flex-1 min-w-0">
+                <h4 class="text-sm font-bold text-zinc-100 truncate mb-1">{{ p.name }}</h4>
+                <p class="text-xs text-zinc-400" *ngIf="p.tracks?.total !== undefined">
+                  {{ p.tracks.total }} canciones
+                </p>
+                <p class="text-xs text-zinc-400" *ngIf="p.description">
+                  {{ p.description }}
+                </p>
+              </div>
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-zinc-500 flex-shrink-0 transition-transform"
+                   [class.rotate-180]="isPlaylistExpanded(p.id)"
+                   fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
             </div>
-            <div class="mt-2 text-xs font-medium text-zinc-200 truncate">{{ p.name }}</div>
+
+            <!-- Canciones expandidas -->
+            <div *ngIf="isPlaylistExpanded(p.id)" class="border-t border-white/5 p-4 animate-fadeIn">
+              <div *ngIf="isLoadingPlaylist(p.id)" class="flex items-center justify-center py-8">
+                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+                <span class="ml-3 text-sm text-zinc-400">Cargando canciones...</span>
+              </div>
+
+              <div *ngIf="!isLoadingPlaylist(p.id)">
+                <div *ngIf="getPlaylistTracks(p.id).length === 0" class="text-center py-8 text-zinc-500 text-sm">
+                  No se pudieron cargar las canciones de esta playlist.
+                </div>
+
+                <div *ngIf="getPlaylistTracks(p.id).length > 0" class="space-y-2 max-h-96 overflow-y-auto">
+                  <div *ngFor="let track of getPlaylistTracks(p.id)" 
+                       class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
+                    <img [src]="track.album?.images?.[2]?.url || track.album?.images?.[0]?.url" 
+                         class="w-12 h-12 rounded object-cover flex-shrink-0" alt="">
+                    <div class="flex-1 min-w-0">
+                      <div class="text-sm font-medium text-zinc-100 truncate">{{ track.name }}</div>
+                      <div class="text-xs text-zinc-400 truncate">{{ artistNames(track) }}</div>
+                    </div>
+                    <div class="text-xs text-zinc-500 flex-shrink-0" *ngIf="track.duration_ms">
+                      {{ formatDuration(track.duration_ms) }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <div *ngIf="!playlists.length" class="col-span-full py-8 text-center text-zinc-500 text-sm">
+
+          <div *ngIf="!playlists.length" class="py-8 text-center text-zinc-500 text-sm">
             No se encontraron playlists públicas.
           </div>
         </div>
