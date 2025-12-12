@@ -18,7 +18,7 @@ interface Notification {
 @Component({
   selector: 'app-notifications',
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule],
   templateUrl: './notifications.component.html'
 })
 export class NotificationsComponent implements OnInit {
@@ -109,6 +109,27 @@ export class NotificationsComponent implements OnInit {
         },
         error: (err) => {
           console.error('Error marcando todas como leídas:', err);
+        }
+      });
+  }
+
+  deleteNotification(notificationId: string): void {
+    const token = this.auth.getAccessToken();
+    if (!token) return;
+
+    const headers = new HttpHeaders({ 
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    });
+
+    this.http.delete(`${this.API_BASE}/api/notifications/${notificationId}`, { headers })
+      .subscribe({
+        next: () => {
+          // Eliminar la notificación de la lista local
+          this.notifications = this.notifications.filter(n => n._id !== notificationId);
+        },
+        error: (err) => {
+          console.error('Error eliminando notificación:', err);
         }
       });
   }

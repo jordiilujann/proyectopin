@@ -102,6 +102,30 @@ export async function getUnreadCount(userId: string) {
 }
 
 /**
+ * Elimina una notificación
+ */
+export async function deleteNotification(notificationId: string, userId: string) {
+  try {
+    // Verificar que la notificación pertenece al usuario antes de eliminar
+    const notification = await Notification.findById(notificationId);
+    if (!notification) {
+      throw new Error("Notificación no encontrada");
+    }
+    if (notification.user_id !== userId) {
+      throw new Error("No tienes permiso para eliminar esta notificación");
+    }
+    
+    const deleted = await Notification.findByIdAndDelete(notificationId);
+    if (!deleted) {
+      throw new Error("Error al eliminar la notificación");
+    }
+    return deleted;
+  } catch (error: any) {
+    throw new Error(`Error al eliminar notificación: ${error.message}`);
+  }
+}
+
+/**
  * Crea una notificación cuando alguien sigue a un usuario
  */
 export async function notifyNewFollower(followerId: string, followingId: string) {

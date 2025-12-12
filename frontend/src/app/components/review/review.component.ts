@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -30,7 +30,7 @@ interface SelectedItem {
   templateUrl: './review.component.html',
 })
 
-export class ReviewComponent implements OnInit {
+export class ReviewComponent implements OnInit, OnDestroy {
   searchQuery: string = '';
   searchResults: SearchResult = { tracks: [], albums: [], artists: [] };
   selectedItem: SelectedItem | null = null;
@@ -310,8 +310,87 @@ export class ReviewComponent implements OnInit {
     });
   }
 
-  setRating(stars: number) {
-    this.rating = stars;
+  isDragging: boolean = false;
+  starContainerRef: HTMLElement | null = null;
+
+  setRating(value: number) {
+    // Asegurar que el valor esté entre 0 y 5, con incrementos de 0.5
+    this.rating = Math.max(0, Math.min(5, Math.round(value * 2) / 2));
+  }
+
+  onStarMouseDown(event: MouseEvent) {
+    this.isDragging = true;
+    this.starContainerRef = event.currentTarget as HTMLElement;
+    this.updateRatingFromEvent(event);
+    event.preventDefault();
+  }
+
+  onStarMouseMove(event: MouseEvent) {
+    if (this.isDragging) {
+      this.updateRatingFromEvent(event);
+    }
+  }
+
+  onStarMouseUp(event: MouseEvent) {
+    if (this.isDragging) {
+      this.updateRatingFromEvent(event);
+      this.isDragging = false;
+    }
+  }
+
+  onStarMouseLeave() {
+    // No detener el arrastre aquí, permitir continuar fuera del contenedor
+  }
+
+  @HostListener('document:mouseup', ['$event'])
+  onDocumentMouseUp(event: MouseEvent) {
+    if (this.isDragging) {
+      this.isDragging = false;
+      this.starContainerRef = null;
+    }
+  }
+
+  @HostListener('document:mousemove', ['$event'])
+  onDocumentMouseMove(event: MouseEvent) {
+    if (this.isDragging && this.starContainerRef) {
+      const rect = this.starContainerRef.getBoundingClientRect();
+      const x = event.clientX - rect.left;
+      const width = rect.width;
+      
+      // Permitir arrastrar un poco fuera del contenedor para mejor UX
+      const clampedX = Math.max(0, Math.min(width, x));
+      const position = (clampedX / width) * 5;
+      const rating = Math.max(0, Math.min(5, Math.round(position * 2) / 2));
+      this.rating = rating;
+    }
+  }
+
+  ngOnDestroy() {
+    this.isDragging = false;
+    this.starContainerRef = null;
+  }
+
+  onStarClick(event: MouseEvent) {
+    // Si no estaba arrastrando, actualizar con un clic
+    if (!this.isDragging) {
+      this.updateRatingFromEvent(event);
+    }
+  }
+
+  updateRatingFromEvent(event: MouseEvent) {
+    const container = (event.currentTarget as HTMLElement);
+    const rect = container.getBoundingClientRect();
+    const x = event.clientX - rect.left;
+    const width = rect.width;
+    
+    // Calcular el rating basado en la posición X (0 a 5 estrellas)
+    // Cada estrella ocupa width/5, cada media estrella ocupa width/10
+    const position = (x / width) * 5; // Posición de 0 a 5
+    
+    // Redondear a la media estrella más cercana (0, 0.5, 1, 1.5, etc.)
+    const rating = Math.max(0, Math.min(5, Math.round(position * 2) / 2));
+    
+    this.rating = rating;
   }
 
   submitReview() {

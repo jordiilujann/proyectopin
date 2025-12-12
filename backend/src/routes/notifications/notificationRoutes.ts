@@ -34,5 +34,12 @@ router.patch(
   notificationController.markAsRead
 );
 
+// Eliminar una notificación
+router.delete(
+  "/:id",
+  getCurrentUserFromSpotify,
+  notificationController.deleteNotification
+);
+
 export default router;
 

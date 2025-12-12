@@ -5,16 +5,16 @@ import { FormsModule } from '@angular/forms';
 import { ReviewService } from '../../services/review.service';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { SpotifyService, SpotifyTrack, SpotifyAlbum, SpotifyArtist } from '../../services/spotify.service';
 
-interface SpotifyTrack {
+interface SearchResult {
   id: string;
   name: string;
   artists: { id: string; name: string }[];
-  album: { id: string; name: string };
   coverUrl: string;
-  previewUrl: string;
-  popularity: number;
-  externalUrl: string;
+  type: 'track' | 'album' | 'artist';
+  album?: { id: string; name: string };
+  genres?: string[];
 }
 
 interface User {
@@ -36,7 +36,7 @@ interface User {
 export class SearchComponent implements OnInit {
   searchQuery: string = '';
   activeTab: 'spotify' | 'users' = 'spotify';
-  spotifyResults: SpotifyTrack[] = [];
+  spotifyResults: SearchResult[] = [];
   userResults: User[] = [];
   isLoading: boolean = false;
   error: string = '';
@@ -51,7 +51,8 @@ export class SearchComponent implements OnInit {
     private cdr: ChangeDetectorRef,
     private reviewService: ReviewService,
     private router: Router,
-    private auth: AuthService
+    private auth: AuthService,
+    private spotifyService: SpotifyService
   ) {}
 
   ngOnInit() {
@@ -103,19 +104,45 @@ export class SearchComponent implements OnInit {
   }
 
   searchSpotify() {
-    this.http.get<any[]>(`/api/spotify/tracks?q=${encodeURIComponent(this.searchQuery)}`)
-      .subscribe({
-        next: (results) => {
-          this.spotifyResults = results;
-          this.isLoading = false;
-          this.cdr.detectChanges();
-        },
-        error: (error) => {
-          this.error = 'Error al buscar canciones';
-          this.isLoading = false;
-          console.error('Error searching Spotify:', error);
-        }
-      });
+    this.spotifyService.searchAll(this.searchQuery).subscribe({
+      next: (results) => {
+        // Combinar tracks, albums y artists en un solo array con tipo
+        const combinedResults: SearchResult[] = [
+          ...results.tracks.map(track => ({
+            id: track.id,
+            name: track.name,
+            artists: track.artists,
+            coverUrl: track.coverUrl || '',
+            type: 'track' as const,
+            album: track.album
+          })),
+          ...results.albums.map(album => ({
+            id: album.id,
+            name: album.name,
+            artists: album.artists,
+            coverUrl: album.coverUrl || '',
+            type: 'album' as const
+          })),
+          ...results.artists.map(artist => ({
+            id: artist.id,
+            name: artist.name,
+            artists: [{ id: artist.id, name: artist.name }],
+            coverUrl: artist.images && artist.images.length > 0 ? artist.images[0].url : '',
+            type: 'artist' as const,
+            genres: artist.genres || []
+          }))
+        ];
+        
+        this.spotifyResults = combinedResults;
+        this.isLoading = false;
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        this.error = 'Error al buscar música';
+        this.isLoading = false;
+        console.error('Error searching Spotify:', error);
+      }
+    });
   }
 
   searchUsers() {
@@ -251,7 +278,7 @@ export class SearchComponent implements OnInit {
     return avg.toFixed(1); // ej: "4.3"
   }
 
-  viewReviews(spotifyId: string, name: string, type: 'track' | 'artist' | 'album') {
+  viewReviews(spotifyId: string, name: string, type: 'track' | 'album' | 'artist') {
     // Usamos el ID para comparar, que es único
     if (this.selectedItemId === spotifyId) {
       this.selectedItemId = ''; // Cerrar si ya está abierto
@@ -276,15 +303,22 @@ export class SearchComponent implements OnInit {
     });
   }
 
-  goToCreateReview(item: any, type: 'track' | 'artist' | 'album') {
+  goToCreateReview(item: any, type: 'track' | 'album' | 'artist') {
     // Preparamos el objeto tal como lo espera el ReviewComponent
+    let coverUrl = item.coverUrl;
+    
+    // Para artistas, obtener coverUrl de images si está disponible
+    if (type === 'artist' && item.images && item.images.length > 0) {
+      coverUrl = item.images[0].url;
+    }
+    
     const itemToPass = {
       id: item.id,
       name: item.name,
       type: type,
-      coverUrl: item.coverUrl,
-      artists: item.artists, // Importante para buscar el género luego
-      genres: item.genres 
+      coverUrl: coverUrl,
+      artists: item.artists || [{ id: item.id, name: item.name }], // Para artistas, crear array con el propio artista
+      genres: item.genres || []
     };
 
     // Navegamos a la ruta '/app/review' pasando el objeto en el 'state'

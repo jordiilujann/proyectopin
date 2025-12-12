@@ -14,6 +14,7 @@ import { RouterLink, Router } from '@angular/router';
 export class FeedComponent implements OnInit {
   reviews: Review[] = [];
   loading: boolean = false;
+  loadingMore: boolean = false;
   error: string = '';
   activeMenuId: string | null = null;
   currentUserId: string | null = null;
@@ -21,6 +22,11 @@ export class FeedComponent implements OnInit {
   selectedItemId: string = '';
   selectedItemReviews: any[] = [];
   isLoadingReviews: boolean = false;
+  currentPage: number = 1;
+  hasMorePages: boolean = true;
+  pageSize: number = 10;
+  initialLoadSize: number = 5; // Cargar solo 5 reseñas inicialmente
+  pendingReviews: Review[] = []; // Reseñas pendientes de enriquecer
   getRandomTime(): string {
   const times = ['1 min', '5 min', '1h', '3h', '1d'];
   return times[Math.floor(Math.random() * times.length)];
@@ -67,15 +73,47 @@ export class FeedComponent implements OnInit {
     this.activeMenuId = null;
   }
 
+  @HostListener('window:scroll')
+  onScroll(): void {
+    // Detectar cuando el usuario está cerca del final de la página
+    const windowHeight = window.innerHeight;
+    const documentHeight = document.documentElement.scrollHeight;
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    
+    // Cargar más cuando esté a 200px del final
+    const threshold = 200;
+    if (scrollTop + windowHeight >= documentHeight - threshold) {
+      this.loadMoreReviews();
+    }
+  }
+
   ngOnInit(): void {
     this.auth.ensureUserIdentity().subscribe({
       next: () => {
         this.currentUserId = this.auth.getUserId();
         this.currentUserName = this.auth.getUserName();
         this.loadReviews();
+        this.loadUserLikes();
       },
       error: () => {
         this.loadReviews();
+      }
+    });
+  }
+
+  loadUserLikes(): void {
+    if (!this.currentUserId) return;
+    
+    this.reviewService.getLikedReviews(this.currentUserId).subscribe({
+      next: (likedReviewIds: string[]) => {
+        // Inicializar el Set con los IDs de las reseñas que el usuario ha dado like
+        this.likedReviews = new Set(likedReviewIds);
+        console.log('Likes del usuario cargados:', this.likedReviews);
+      },
+      error: (error) => {
+        console.error('Error al cargar los likes del usuario:', error);
+        // Si falla, inicializar con un Set vacío
+        this.likedReviews = new Set();
       }
     });
   }
@@ -85,9 +123,13 @@ export class FeedComponent implements OnInit {
 
     this.loading = true;
     this.error = '';
+    this.currentPage = 1;
+    this.hasMorePages = true;
+    this.reviews = [];
+    this.pendingReviews = [];
 
-    // Cargar todas las reseñas de una vez (usando un límite grande)
-    this.reviewService.getReviews(1, 100)
+    // Cargar primera página completa del backend
+    this.reviewService.getReviews(this.currentPage, this.pageSize)
       .subscribe({
         next: (response: any) => {
           console.log('Respuesta recibida:', response);
@@ -96,23 +138,38 @@ export class FeedComponent implements OnInit {
           
           // Manejar diferentes formatos de respuesta
           if (Array.isArray(response)) {
-            // El backend devuelve un array directamente
             reviewsArray = response;
-            console.log('Reviews recibidas (array):', reviewsArray);
+            this.hasMorePages = reviewsArray.length === this.pageSize;
           } else if (response && response.reviews) {
-            // El backend devuelve un objeto ReviewResponse
             reviewsArray = response.reviews;
-            console.log('Reviews recibidas (ReviewResponse):', reviewsArray);
+            // Verificar si hay más páginas
+            if (response.totalPages !== undefined) {
+              this.hasMorePages = this.currentPage < response.totalPages;
+            } else {
+              this.hasMorePages = reviewsArray.length === this.pageSize;
+            }
           } else {
-            // Formato inesperado
             this.error = 'Formato de respuesta inesperado';
             console.error('Formato de respuesta inesperado:', response);
             this.loading = false;
             return;
           }
           
-          // Obtener información detallada de Spotify para cada reseña
-          this.enrichReviewsWithSpotifyInfo(reviewsArray);
+          // Separar reseñas: las primeras para mostrar inmediatamente, el resto para cargar después
+          const initialReviews = reviewsArray.slice(0, this.initialLoadSize);
+          const remainingReviews = reviewsArray.slice(this.initialLoadSize);
+          
+          // Enriquecer y mostrar primero solo las visibles
+          this.enrichReviewsWithSpotifyInfo(initialReviews, true, true);
+          
+          // Guardar las restantes para cargar después
+          if (remainingReviews.length > 0) {
+            this.pendingReviews = remainingReviews;
+            // Cargar las restantes después de un breve delay
+            setTimeout(() => {
+              this.loadPendingReviews();
+            }, 500);
+          }
         },
         error: (error) => {
           this.error = 'Error al cargar las reseñas';
@@ -122,14 +179,75 @@ export class FeedComponent implements OnInit {
       });
   }
 
+  loadPendingReviews(): void {
+    if (this.pendingReviews.length === 0) return;
+    
+    // Tomar las siguientes reseñas pendientes
+    const reviewsToLoad = this.pendingReviews.splice(0, 3); // Cargar 3 a la vez
+    
+    // Enriquecer y agregar
+    this.enrichReviewsWithSpotifyInfo(reviewsToLoad, false, false);
+    
+    // Si aún hay más pendientes, cargar más después de un delay
+    if (this.pendingReviews.length > 0) {
+      setTimeout(() => {
+        this.loadPendingReviews();
+      }, 300);
+    }
+  }
+
+  loadMoreReviews(): void {
+    // Evitar cargar si ya está cargando o no hay más páginas
+    if (this.loadingMore || !this.hasMorePages || this.loading) return;
+
+    this.loadingMore = true;
+    this.currentPage++;
+
+    this.reviewService.getReviews(this.currentPage, this.pageSize)
+      .subscribe({
+        next: (response: any) => {
+          let reviewsArray: Review[] = [];
+          
+          if (Array.isArray(response)) {
+            reviewsArray = response;
+            this.hasMorePages = reviewsArray.length === this.pageSize;
+          } else if (response && response.reviews) {
+            reviewsArray = response.reviews;
+            if (response.totalPages !== undefined) {
+              this.hasMorePages = this.currentPage < response.totalPages;
+            } else {
+              this.hasMorePages = reviewsArray.length === this.pageSize;
+            }
+          }
+
+          // Enriquecer y agregar a las reseñas existentes
+          if (reviewsArray.length > 0) {
+            this.enrichReviewsWithSpotifyInfo(reviewsArray, false);
+          } else {
+            this.hasMorePages = false;
+            this.loadingMore = false;
+          }
+        },
+        error: (error) => {
+          console.error('Error loading more reviews:', error);
+          this.currentPage--; // Revertir el incremento de página
+          this.loadingMore = false;
+        }
+      });
+  }
+
   // Método para enriquecer las reseñas con información de Spotify
-  enrichReviewsWithSpotifyInfo(reviews: Review[]): void {
+  enrichReviewsWithSpotifyInfo(reviews: Review[], isInitialLoad: boolean = true, showImmediately: boolean = false): void {
     const enrichedReviews: Review[] = [];
     let processedCount = 0;
 
     if (reviews.length === 0) {
-      this.reviews = [];
-      this.loading = false;
+      if (isInitialLoad) {
+        this.reviews = [];
+        this.loading = false;
+      } else {
+        this.loadingMore = false;
+      }
       return;
     }
 
@@ -141,60 +259,131 @@ export class FeedComponent implements OnInit {
             console.log(`Info Spotify para ${review.spotify_id}:`, spotifyInfo);
             
             // Enriquecer la reseña con la información de Spotify
-              const enrichedReview: Review = {
-                ...review,
-                item_name: spotifyInfo.name || review.item_name,
-                // Usar coverUrl si está disponible, sino buscar en album.images o images
-                item_cover_url: spotifyInfo.coverUrl ||
-                               spotifyInfo.album?.images?.[0]?.url || 
-                               spotifyInfo.images?.[0]?.url || 
-                               review.item_cover_url,
-                item_artists: spotifyInfo.artists ? 
-                  spotifyInfo.artists.map((artist: any) => artist.name) : 
-                  review.item_artists
-              };
+            const enrichedReview: Review = {
+              ...review,
+              likes: review.likes || 0,
+              item_name: spotifyInfo.name || review.item_name,
+              item_cover_url: spotifyInfo.coverUrl ||
+                             spotifyInfo.album?.images?.[0]?.url || 
+                             spotifyInfo.images?.[0]?.url || 
+                             review.item_cover_url,
+              item_artists: spotifyInfo.artists ? 
+                spotifyInfo.artists.map((artist: any) => artist.name) : 
+                review.item_artists
+            };
 
             enrichedReviews[index] = enrichedReview;
             processedCount++;
 
+            // Si showImmediately es true, mostrar cada reseña tan pronto como esté lista
+            if (showImmediately && isInitialLoad) {
+              // Agregar inmediatamente a las reseñas existentes
+              const existingIndex = this.reviews.findIndex(r => r._id === enrichedReview._id);
+              if (existingIndex === -1) {
+                this.reviews = [...this.reviews, enrichedReview];
+                this.cdr.detectChanges();
+              }
+            }
+
             // Cuando todas las reseñas han sido procesadas
             if (processedCount === reviews.length) {
-              this.reviews = enrichedReviews;
-              this.loading = false;
-              console.log('Reviews enriquecidas con Spotify:', this.reviews);
+              if (isInitialLoad && !showImmediately) {
+                this.reviews = enrichedReviews;
+                this.loading = false;
+              } else if (!isInitialLoad || !showImmediately) {
+                // Agregar a las reseñas existentes (evitando duplicados)
+                const newReviews = enrichedReviews.filter(newReview => 
+                  !this.reviews.some(existingReview => existingReview._id === newReview._id)
+                );
+                this.reviews = [...this.reviews, ...newReviews];
+                if (!isInitialLoad) {
+                  this.loadingMore = false;
+                } else {
+                  this.loading = false;
+                }
+              }
+              console.log('Reviews enriquecidas con Spotify:', enrichedReviews.length);
             }
           },
           error: (error) => {
             console.error(`Error obteniendo info de Spotify para ${review.spotify_id}:`, error);
             // Usar la información básica si falla la llamada a Spotify
-            enrichedReviews[index] = review;
+            const basicReview: Review = {
+              ...review,
+              likes: review.likes || 0
+            };
+            
+            enrichedReviews[index] = basicReview;
             processedCount++;
 
+            // Si showImmediately es true, mostrar inmediatamente
+            if (showImmediately && isInitialLoad) {
+              const existingIndex = this.reviews.findIndex(r => r._id === basicReview._id);
+              if (existingIndex === -1) {
+                this.reviews = [...this.reviews, basicReview];
+                this.cdr.detectChanges();
+              }
+            }
+
             if (processedCount === reviews.length) {
-              this.reviews = enrichedReviews;
-              this.loading = false;
+              if (isInitialLoad && !showImmediately) {
+                this.reviews = enrichedReviews;
+                this.loading = false;
+              } else if (!isInitialLoad || !showImmediately) {
+                const newReviews = enrichedReviews.filter(newReview => 
+                  !this.reviews.some(existingReview => existingReview._id === newReview._id)
+                );
+                this.reviews = [...this.reviews, ...newReviews];
+                if (!isInitialLoad) {
+                  this.loadingMore = false;
+                } else {
+                  this.loading = false;
+                }
+              }
             }
           }
         });
     });
   }
 
-  likeReview(review: Review): void {
-    if (!review._id) return;
+  likedReviews: Set<string> = new Set(); // Para trackear qué reseñas tiene like el usuario actual
 
-    this.reviewService.likeReview(review._id).subscribe({
-      next: (response) => {
-        // Actualizar el contador de likes en la reseña
-        const index = this.reviews.findIndex(r => r._id === review._id);
-        if (index !== -1) {
-          this.reviews[index].likes = response.likes;
+  toggleLike(review: Review): void {
+    if (!review._id || !this.currentUserId) return;
+
+    const isLiked = this.likedReviews.has(review._id);
+    const reviewIndex = this.reviews.findIndex(r => r._id === review._id);
+    
+    if (reviewIndex === -1) return;
+
+    if (isLiked) {
+      // Quitar like
+      this.reviewService.unlikeReview(review._id).subscribe({
+        next: (response) => {
+          this.reviews[reviewIndex].likes = response.likes || 0;
+          this.likedReviews.delete(review._id);
+        },
+        error: (error) => {
+          console.error('Error al quitar like:', error);
         }
-      },
-      error: (error) => {
-        console.error('Error al dar like:', error);
-        this.error = 'Error al dar like a la reseña';
-      }
-    });
+      });
+    } else {
+      // Dar like
+      this.reviewService.likeReview(review._id).subscribe({
+        next: (response) => {
+          this.reviews[reviewIndex].likes = response.likes || 0;
+          this.likedReviews.add(review._id);
+        },
+        error: (error) => {
+          console.error('Error al dar like:', error);
+        }
+      });
+    }
+  }
+
+  isLiked(reviewId: string | undefined): boolean {
+    if (!reviewId) return false;
+    return this.likedReviews.has(reviewId);
   }
 
   getStarRating(rating: number): string[] {

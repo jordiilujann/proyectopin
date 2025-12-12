@@ -98,3 +98,61 @@ export async function getReviewsBySpotifyId(req: Request, res: Response) {
   }
 }
 
+export async function likeReview(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const currentUser = (req as any).currentUser;
+    
+    if (!currentUser) {
+      return res.status(401).json({ error: "Usuario no autenticado" });
+    }
+
+    const userId = currentUser._id || currentUser.id;
+    const result = await reviewService.likeReview(id, userId);
+    res.json(result);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || "Error al dar like a la reseña" });
+  }
+}
+
+export async function unlikeReview(req: Request, res: Response) {
+  try {
+    const { id } = req.params;
+    const currentUser = (req as any).currentUser;
+    
+    if (!currentUser) {
+      return res.status(401).json({ error: "Usuario no autenticado" });
+    }
+
+    const userId = currentUser._id || currentUser.id;
+    const result = await reviewService.unlikeReview(id, userId);
+    res.json(result);
+  } catch (error: any) {
+    res.status(400).json({ error: error.message || "Error al quitar like de la reseña" });
+  }
+}
+
+export async function getLikedReviews(req: Request, res: Response) {
+  try {
+    const { userId } = req.params;
+    const currentUser = (req as any).currentUser;
+    
+    if (!currentUser) {
+      return res.status(401).json({ error: "Usuario no autenticado" });
+    }
+
+    // Solo permitir que el usuario vea sus propios likes
+    const requestedUserId = userId;
+    const authenticatedUserId = currentUser._id || currentUser.id;
+    
+    if (requestedUserId !== authenticatedUserId) {
+      return res.status(403).json({ error: "No tienes permiso para ver los likes de este usuario" });
+    }
+
+    const likedReviewIds = await reviewService.getUserLikedReviews(requestedUserId);
+    res.json(likedReviewIds);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message || "Error al obtener reseñas con like" });
+  }
+}
+

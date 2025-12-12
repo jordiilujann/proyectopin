@@ -47,7 +47,7 @@ export class ReviewService {
   likeReview(reviewId: string): Observable<LikeReviewResponse> {
     const headers = this.getHeaders();
     return this.http.post<LikeReviewResponse>(
-      `${this.API_BASE}/api/reviews/${reviewId}/like`, 
+      `${this.API_BASE}/api/reviews/like/${reviewId}`, 
       {}, 
       { headers }
     );
@@ -56,10 +56,15 @@ export class ReviewService {
   unlikeReview(reviewId: string): Observable<LikeReviewResponse> {
     const headers = this.getHeaders();
     return this.http.post<LikeReviewResponse>(
-      `${this.API_BASE}/api/reviews/${reviewId}/unlike`, 
+      `${this.API_BASE}/api/reviews/unlike/${reviewId}`, 
       {}, 
       { headers }
     );
+  }
+
+  getLikedReviews(userId: string): Observable<string[]> {
+    const headers = this.getHeaders();
+    return this.http.get<string[]>(`${this.API_BASE}/api/reviews/user/${userId}/likes`, { headers });
   }
 
   updateReview(reviewId: string, updatedReview: any): Observable<any> {

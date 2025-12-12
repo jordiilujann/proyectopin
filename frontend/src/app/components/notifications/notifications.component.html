@@ -1,30 +1,16 @@
-<div class="min-h-screen bg-gradient-to-b from-[#451a1a] via-[#1a1a1a] to-black text-white pb-32 font-sans">
-  
-  <header class="flex justify-between items-center p-6 mb-2">
-    <button 
-      class="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-all backdrop-blur-sm" 
-      [routerLink]="['/app/profile']">
-      <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-zinc-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-      </svg>
-    </button>
-    <h1 class="text-lg font-semibold tracking-wide text-zinc-100">
-      Notificaciones
-      <span *ngIf="unreadCount > 0" class="ml-2 text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">
-        {{ unreadCount }}
-      </span>
-    </h1>
-    <button 
-      *ngIf="unreadCount > 0"
-      (click)="markAllAsRead()"
-      class="w-10 h-10 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-all backdrop-blur-sm text-xs text-zinc-300"
-      title="Marcar todas como leídas">
-      ✓
-    </button>
-    <div *ngIf="unreadCount === 0" class="w-10"></div>
-  </header>
-
-  <div class="max-w-md mx-auto px-6">
+<div class="min-h-screen bg-black text-white pb-32 font-sans overflow-x-hidden">
+  <div class="max-w-md mx-auto px-4 pt-12">
+    
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-3xl font-bold tracking-tight">Notificaciones</h1>
+      <button 
+        *ngIf="unreadCount > 0"
+        (click)="markAllAsRead()"
+        class="text-xs text-zinc-400 hover:text-white transition-colors font-medium"
+        title="Marcar todas como leídas">
+        Marcar todas como leídas
+      </button>
+    </div>
     
     <div *ngIf="loading" class="flex flex-col items-center justify-center py-20">
       <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-white mb-4"></div>
@@ -36,22 +22,21 @@
     </div>
 
     <div *ngIf="!loading && !error && notifications.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
-      <div class="text-5xl mb-4">🔔</div>
+      <div class="text-5xl mb-4 opacity-50">🔔</div>
       <p class="text-zinc-400 text-sm">No tienes notificaciones aún</p>
     </div>
 
     <div *ngIf="!loading && !error && notifications.length > 0" class="space-y-3">
       <div 
         *ngFor="let notification of notifications" 
-        (click)="!notification.read && markAsRead(notification._id!)"
-        class="bg-[#1e1e1e] rounded-2xl p-4 border transition-all cursor-pointer"
-        [class.border-white/10]="!notification.read"
-        [class.border-white/5]="notification.read"
-        [class.bg-[#252525]]="!notification.read"
-        [class.bg-[#1e1e1e]]="notification.read">
+        class="bg-[#1C1C1C] p-3 flex gap-3 relative overflow-hidden group border border-transparent hover:border-zinc-800 transition-all items-start rounded-2xl"
+        [class.bg-[#252525]]="!notification.read">
         
-        <div class="flex items-start gap-3">
-          <div class="text-2xl flex-shrink-0">
+        <div 
+          (click)="!notification.read && markAsRead(notification._id!)"
+          class="flex-1 flex items-start gap-3 cursor-pointer min-w-0">
+          
+          <div class="text-xl flex-shrink-0 mt-0.5">
             {{ getNotificationIcon(notification.type) }}
           </div>
           
@@ -66,6 +51,15 @@
 
           <div *ngIf="!notification.read" class="flex-shrink-0 w-2 h-2 bg-red-500 rounded-full mt-2"></div>
         </div>
+
+        <button 
+          (click)="deleteNotification(notification._id!); $event.stopPropagation()"
+          class="flex-shrink-0 p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-all opacity-0 group-hover:opacity-100"
+          title="Eliminar notificación">
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+        </button>
       </div>
     </div>
 

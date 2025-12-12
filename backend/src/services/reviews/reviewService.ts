@@ -1,5 +1,6 @@
 import Review from "../../models/review.js";
 import User from "../../models/user.js";
+import Like from "../../models/like.js";
 
 export async function createReview(reviewData: any) {
   try {
@@ -38,15 +39,22 @@ export async function getReviews(filters: any = {}, page: number = 1, limit: num
       .skip(skip)
       .limit(limit);
     
-    // Enriquecer las reseñas con información del usuario
+    // Enriquecer las reseñas con información del usuario y actualizar contador de likes
     const enrichedReviews = await Promise.all(
       reviews.map(async (review) => {
         try {
           const user = await User.findById(review.user_id);
+          // Actualizar el contador de likes basado en el modelo Like
+          const likesCount = await Like.countDocuments({ review_id: review._id.toString() });
+          if (likesCount !== review.likes) {
+            await Review.findByIdAndUpdate(review._id, { $set: { likes: likesCount } });
+          }
+          
           if (user) {
             return {
               ...review.toObject(),
-              user_name: user.name || 'Usuario'
+              user_name: user.name || 'Usuario',
+              likes: likesCount
             };
           }
         } catch (error) {
@@ -54,9 +62,11 @@ export async function getReviews(filters: any = {}, page: number = 1, limit: num
         }
         
         // Si no se puede obtener el usuario, mantener la reseña original
+        const likesCount = await Like.countDocuments({ review_id: review._id.toString() });
         return {
           ...review.toObject(),
-          user_name: 'Usuario'
+          user_name: 'Usuario',
+          likes: likesCount
         };
       })
     );
@@ -175,6 +185,81 @@ export async function getReviewsBySpotifyId(spotifyId: string, targetType: strin
     return enrichedReviews;
   } catch (error) {
     throw new Error(`Error al obtener reseñas por Spotify ID: ${error}`);
+  }
+}
+
+export async function likeReview(reviewId: string, userId: string) {
+  try {
+    // Verificar que la reseña existe
+    const review = await Review.findById(reviewId);
+    if (!review) {
+      throw new Error("Reseña no encontrada");
+    }
+
+    // Verificar si el usuario ya dio like
+    const existingLike = await Like.findOne({ review_id: reviewId, user_id: userId });
+    if (existingLike) {
+      // Si ya dio like, devolver el conteo actual
+      const likesCount = await Like.countDocuments({ review_id: reviewId });
+      await Review.findByIdAndUpdate(reviewId, { $set: { likes: likesCount } });
+      return { success: true, likes: likesCount, alreadyLiked: true };
+    }
+
+    // Crear el like
+    const like = new Like({
+      review_id: reviewId,
+      user_id: userId
+    });
+    await like.save();
+
+    // Actualizar el contador de likes en la reseña
+    const likesCount = await Like.countDocuments({ review_id: reviewId });
+    await Review.findByIdAndUpdate(reviewId, { $set: { likes: likesCount } });
+
+    return { success: true, likes: likesCount, alreadyLiked: false };
+  } catch (error: any) {
+    if (error.code === 11000) {
+      // Duplicado (no debería pasar por la verificación anterior, pero por si acaso)
+      const likesCount = await Like.countDocuments({ review_id: reviewId });
+      return { success: true, likes: likesCount, alreadyLiked: true };
+    }
+    throw new Error(`Error al dar like: ${error.message}`);
+  }
+}
+
+export async function unlikeReview(reviewId: string, userId: string) {
+  try {
+    // Verificar que la reseña existe
+    const review = await Review.findById(reviewId);
+    if (!review) {
+      throw new Error("Reseña no encontrada");
+    }
+
+    // Eliminar el like
+    const deletedLike = await Like.findOneAndDelete({ review_id: reviewId, user_id: userId });
+    
+    if (!deletedLike) {
+      // Si no había like, devolver el conteo actual
+      const likesCount = await Like.countDocuments({ review_id: reviewId });
+      return { success: true, likes: likesCount, alreadyUnliked: true };
+    }
+
+    // Actualizar el contador de likes en la reseña
+    const likesCount = await Like.countDocuments({ review_id: reviewId });
+    await Review.findByIdAndUpdate(reviewId, { $set: { likes: likesCount } });
+
+    return { success: true, likes: likesCount, alreadyUnliked: false };
+  } catch (error: any) {
+    throw new Error(`Error al quitar like: ${error.message}`);
+  }
+}
+
+export async function getUserLikedReviews(userId: string): Promise<string[]> {
+  try {
+    const likes = await Like.find({ user_id: userId });
+    return likes.map(like => like.review_id);
+  } catch (error: any) {
+    throw new Error(`Error al obtener reseñas con like del usuario: ${error.message}`);
   }
 }
 

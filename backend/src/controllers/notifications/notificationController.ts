@@ -133,3 +133,35 @@ export async function getUnreadCount(req: SpotifyRequest, res: Response) {
   }
 }
 
+/**
+ * DELETE /api/notifications/:id
+ * Elimina una notificación
+ */
+export async function deleteNotification(req: SpotifyRequest, res: Response) {
+  try {
+    const { id } = req.params;
+    const currentUser = req.currentUser || req.user;
+
+    if (!id) {
+      return res.status(400).json({ error: "id es requerido" });
+    }
+
+    if (!currentUser) {
+      return res.status(401).json({ error: "Usuario no autenticado" });
+    }
+
+    const userId = currentUser._id || currentUser.id;
+    const deleted = await notificationService.deleteNotification(id, userId);
+    res.status(200).json({ message: "Notificación eliminada", notification: deleted });
+  } catch (error: any) {
+    console.error("[notificationController.deleteNotification]", error);
+    if (error.message?.includes("No tienes permiso")) {
+      return res.status(403).json({ error: error.message });
+    }
+    if (error.message?.includes("no encontrada")) {
+      return res.status(404).json({ error: error.message });
+    }
+    res.status(500).json({ error: error.message || "Error al eliminar notificación" });
+  }
+}
+
