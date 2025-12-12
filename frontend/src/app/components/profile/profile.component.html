@@ -125,13 +125,19 @@
         </h3>
         <div class="bg-[#1e1e1e] rounded-2xl border border-white/5 overflow-hidden">
           <ul class="divide-y divide-white/5">
-            <li *ngFor="let t of topTracks; let i = index" class="flex items-center gap-4 p-3 hover:bg-white/5 transition-colors">
+            <li *ngFor="let t of topTracks; let i = index" class="flex items-center gap-4 p-3 hover:bg-white/5 transition-colors group">
               <span class="text-zinc-600 font-bold w-4 text-center text-sm">{{ i + 1 }}</span>
               <img [src]="t.album?.images?.[2]?.url || t.album?.images?.[0]?.url" class="w-10 h-10 rounded shadow-sm" alt="">
               <div class="min-w-0 flex-1">
                 <div class="text-sm font-medium text-zinc-100 truncate">{{ t.name }}</div>
                 <div class="text-xs text-zinc-400 truncate">{{ artistNames(t) }}</div>
               </div>
+              
+              <button 
+                (click)="goToReview(t)"
+                class="opacity-0 group-hover:opacity-100 transition-opacity bg-white text-black text-[10px] font-bold px-3 py-1.5 rounded-full hover:scale-105">
+                Reseñar
+              </button>
             </li>
             <li *ngIf="!topTracks.length" class="p-6 text-center text-zinc-500 text-sm">
               No hay datos de canciones.
@@ -249,87 +255,99 @@
 
     <section *ngIf="tab==='music'" class="space-y-6 animate-fadeIn">
       
-      <div class="bg-[#1e1e1e] rounded-2xl shadow-sm border border-white/5 p-4">
-        <h3 class="font-bold text-zinc-100 mb-4">Tus Playlists</h3>
-        <div class="space-y-4">
-          <div *ngFor="let p of playlists" class="bg-[#151515] rounded-xl border border-white/5 overflow-hidden transition-all"
-               [class.border-zinc-700]="isPlaylistExpanded(p.id)">
-            
-            <!-- Playlist compacta (siempre visible) -->
-            <div (click)="togglePlaylistTracks(p.id)" class="flex items-center gap-4 p-3 cursor-pointer hover:bg-white/5 transition-colors">
-              <div class="w-16 h-16 rounded-lg overflow-hidden shadow-md border border-white/5 flex-shrink-0">
-                <img [src]="p.images?.[0]?.url" class="w-full h-full object-cover" alt="">
-              </div>
-              <div class="flex-1 min-w-0">
-                <h4 class="text-sm font-bold text-zinc-100 truncate mb-1">{{ p.name }}</h4>
-                <p class="text-xs text-zinc-400" *ngIf="p.tracks?.total !== undefined">
-                  {{ p.tracks.total }} canciones
-                </p>
-                <p class="text-xs text-zinc-400" *ngIf="p.description">
-                  {{ p.description }}
-                </p>
-              </div>
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-zinc-500 flex-shrink-0 transition-transform"
-                   [class.rotate-180]="isPlaylistExpanded(p.id)"
-                   fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
+  <div class="bg-[#1e1e1e] rounded-2xl shadow-sm border border-white/5 p-4">
+    <h3 class="font-bold text-zinc-100 mb-4">Tus Playlists</h3>
+    <div class="space-y-4">
+      <div *ngFor="let p of playlists" class="bg-[#151515] rounded-xl border border-white/5 overflow-hidden transition-all"
+           [class.border-zinc-700]="isPlaylistExpanded(p.id)">
+        
+        <div (click)="togglePlaylistTracks(p.id)" class="flex items-center gap-4 p-3 cursor-pointer hover:bg-white/5 transition-colors">
+          <div class="w-16 h-16 rounded-lg overflow-hidden shadow-md border border-white/5 flex-shrink-0">
+            <img [src]="p.images?.[0]?.url" class="w-full h-full object-cover" alt="">
+          </div>
+          <div class="flex-1 min-w-0">
+            <h4 class="text-sm font-bold text-zinc-100 truncate mb-1">{{ p.name }}</h4>
+            <p class="text-xs text-zinc-400" *ngIf="p.tracks?.total !== undefined">
+              {{ p.tracks.total }} canciones
+            </p>
+            <p class="text-xs text-zinc-400 truncate" *ngIf="p.description">
+              {{ p.description }}
+            </p>
+          </div>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-zinc-500 flex-shrink-0 transition-transform"
+               [class.rotate-180]="isPlaylistExpanded(p.id)"
+               fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </div>
 
-            <!-- Canciones expandidas -->
-            <div *ngIf="isPlaylistExpanded(p.id)" class="border-t border-white/5 p-4 animate-fadeIn">
-              <div *ngIf="isLoadingPlaylist(p.id)" class="flex items-center justify-center py-8">
-                <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-                <span class="ml-3 text-sm text-zinc-400">Cargando canciones...</span>
-              </div>
-
-              <div *ngIf="!isLoadingPlaylist(p.id)">
-                <div *ngIf="getPlaylistTracks(p.id).length === 0" class="text-center py-8 text-zinc-500 text-sm">
-                  No se pudieron cargar las canciones de esta playlist.
-                </div>
-
-                <div *ngIf="getPlaylistTracks(p.id).length > 0" class="space-y-2 max-h-96 overflow-y-auto">
-                  <div *ngFor="let track of getPlaylistTracks(p.id)" 
-                       class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors">
-                    <img [src]="track.album?.images?.[2]?.url || track.album?.images?.[0]?.url" 
-                         class="w-12 h-12 rounded object-cover flex-shrink-0" alt="">
-                    <div class="flex-1 min-w-0">
-                      <div class="text-sm font-medium text-zinc-100 truncate">{{ track.name }}</div>
-                      <div class="text-xs text-zinc-400 truncate">{{ artistNames(track) }}</div>
-                    </div>
-                    <div class="text-xs text-zinc-500 flex-shrink-0" *ngIf="track.duration_ms">
-                      {{ formatDuration(track.duration_ms) }}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+        <div *ngIf="isPlaylistExpanded(p.id)" class="border-t border-white/5 p-4 animate-fadeIn">
+          
+          <div *ngIf="isLoadingPlaylist(p.id)" class="flex items-center justify-center py-8">
+            <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
+            <span class="ml-3 text-sm text-zinc-400">Cargando canciones...</span>
           </div>
 
-          <div *ngIf="!playlists.length" class="py-8 text-center text-zinc-500 text-sm">
-            No se encontraron playlists públicas.
+          <div *ngIf="!isLoadingPlaylist(p.id)">
+            <div *ngIf="getPlaylistTracks(p.id).length === 0" class="text-center py-8 text-zinc-500 text-sm">
+              No se pudieron cargar las canciones de esta playlist.
+            </div>
+
+            <div *ngIf="getPlaylistTracks(p.id).length > 0" class="space-y-2 max-h-96 overflow-y-auto pr-1 custom-scrollbar">
+              <div *ngFor="let track of getPlaylistTracks(p.id)" 
+                   class="flex items-center gap-3 p-2 rounded-lg hover:bg-white/5 transition-colors group"> <img [src]="track.album?.images?.[2]?.url || track.album?.images?.[0]?.url" 
+                     class="w-10 h-10 rounded object-cover flex-shrink-0" alt="">
+                
+                <div class="flex-1 min-w-0">
+                  <div class="text-sm font-medium text-zinc-100 truncate">{{ track.name }}</div>
+                  <div class="text-xs text-zinc-400 truncate">{{ artistNames(track) }}</div>
+                </div>
+                
+                <div class="text-xs text-zinc-500 flex-shrink-0 mr-2" *ngIf="track.duration_ms">
+                  {{ formatDuration(track.duration_ms) }}
+                </div>
+
+                <button 
+                  (click)="goToReview(track); $event.stopPropagation()" 
+                  class="opacity-0 group-hover:opacity-100 transition-opacity bg-white text-black text-[10px] font-bold px-3 py-1.5 rounded-full hover:scale-105 shadow-md">
+                  Reseñar
+                </button>
+
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      <div class="bg-[#1e1e1e] rounded-2xl shadow-sm border border-white/5 overflow-hidden">
-        <div class="px-5 py-4 border-b border-white/5">
-          <h3 class="font-bold text-zinc-100">Escuchado recientemente</h3>
-        </div>
-        <ul class="divide-y divide-white/5">
-          <li *ngFor="let t of recentlyPlayed" class="flex items-center gap-4 px-4 py-3 hover:bg-white/5 transition-colors">
-            <img [src]="t.album?.images?.[2]?.url || t.album?.images?.[0]?.url" class="w-10 h-10 rounded object-cover" alt="">
-            <div class="min-w-0">
-              <div class="text-sm font-medium text-zinc-200 truncate">{{ t.name }}</div>
-              <div class="text-xs text-zinc-500 truncate">{{ artistNames(t) }}</div>
-            </div>
-          </li>
-          <li *ngIf="!recentlyPlayed.length" class="px-5 py-8 text-center text-zinc-500 text-sm">
-            Sin historial reciente disponible.
-          </li>
-        </ul>
+      <div *ngIf="!playlists.length" class="py-8 text-center text-zinc-500 text-sm">
+        No se encontraron playlists públicas.
       </div>
-    </section>
+    </div>
+  </div>
 
+  <div class="bg-[#1e1e1e] rounded-2xl shadow-sm border border-white/5 overflow-hidden">
+    <div class="px-5 py-4 border-b border-white/5">
+      <h3 class="font-bold text-zinc-100">Escuchado recientemente</h3>
+    </div>
+    <ul class="divide-y divide-white/5">
+      <li *ngFor="let t of recentlyPlayed" class="flex items-center gap-4 px-4 py-3 hover:bg-white/5 transition-colors group">
+        <img [src]="t.album?.images?.[2]?.url || t.album?.images?.[0]?.url" class="w-10 h-10 rounded object-cover" alt="">
+        <div class="min-w-0 flex-1">
+          <div class="text-sm font-medium text-zinc-200 truncate">{{ t.name }}</div>
+          <div class="text-xs text-zinc-500 truncate">{{ artistNames(t) }}</div>
+        </div>
+
+        <button 
+          (click)="goToReview(t)"
+          class="opacity-0 group-hover:opacity-100 transition-opacity bg-white text-black text-[10px] font-bold px-3 py-1.5 rounded-full hover:scale-105 shadow-md">
+          Reseñar
+        </button>
+      </li>
+      <li *ngIf="!recentlyPlayed.length" class="px-5 py-8 text-center text-zinc-500 text-sm">
+        Sin historial reciente disponible.
+      </li>
+    </ul>
+  </div>
+</section>
   </ng-container>
 </div>

@@ -1,11 +1,16 @@
-import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { Component, OnInit, OnDestroy, HostListener, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, ActivatedRoute, Router } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
+
+// Servicios
 import { SpotifyService, SpotifyTrack, SpotifyAlbum, SpotifyArtist } from '../../services/spotify.service';
 import { AuthService } from '../../services/auth.service';
 import { ReviewService } from '../../services/review.service';
-import { FormsModule } from '@angular/forms';
+
+// Librería de color
+import ColorThief from 'colorthief';
 
 interface SearchResult {
   tracks: SpotifyTrack[];
@@ -29,27 +34,39 @@ interface SelectedItem {
   imports: [CommonModule, RouterLink, FormsModule],
   templateUrl: './review.component.html',
 })
-
 export class ReviewComponent implements OnInit, OnDestroy {
+  // --- REFERENCIAS AL DOM ---
+  @ViewChild('starContainer') starContainer!: ElementRef<HTMLElement>;
+
+  // --- ESTADO BÚSQUEDA ---
   searchQuery: string = '';
   searchResults: SearchResult = { tracks: [], albums: [], artists: [] };
+  isLoading: boolean = false;
+  private searchTimeout?: ReturnType<typeof setTimeout>;
+
+  // --- ESTADO FORMULARIO ---
   selectedItem: SelectedItem | null = null;
   rating: number = 0;
   title: string = '';
   content: string = '';
   timestampMs: number | null = null;
   trackDurationMs: number | null = null;
-  isLoading: boolean = false;
+  
+  // --- ESTADO UI / SISTEMA ---
   error: string = '';
-  successMessage: string = '';
-  private searchTimeout?: ReturnType<typeof setTimeout>;
   isEditMode: boolean = false;
   reviewId: string | null = null;
+  currentGradient = 'linear-gradient(to bottom, #451a1a, #1a1a1a, #000000)';
+
+  // --- ESTADO MODAL ---
   showModal: boolean = false;
   modalType: 'success' | 'confirm' = 'success'; 
   modalTitle: string = '';
   modalMessage: string = '';
   private pendingAction: () => void = () => {};
+
+  // --- ESTADO ARRASTRE ESTRELLAS ---
+  isDragging: boolean = false;
 
   constructor(
     private spotifyService: SpotifyService,
@@ -61,41 +78,14 @@ export class ReviewComponent implements OnInit, OnDestroy {
   ) {}
 
   ngOnInit() {
-    // 1. Comprobar si venimos del Feed/Buscador con datos precargados
+    // 1. Datos precargados desde Feed
     const state = history.state;
     if (state && state.preSelected) {
-      console.log('Recibido item preseleccionado:', state.preSelected);
-      const item = state.preSelected;
-      
-      // Simulamos la selección del item
-      this.selectedItem = {
-        id: item.id,
-        name: item.name,
-        type: item.type,
-        coverUrl: item.coverUrl,
-        artists: item.artists,
-        genre: item.genre
-      };
-
-      // Si es un track, intentamos obtener su duración y género
-      if (item.type === 'track') {
-          this.spotifyService.getTrackById(item.id).subscribe({
-            next: (track) => {
-                this.trackDurationMs = track.durationMs;
-            },
-            error: (e) => console.error('Error obteniendo duración track preseleccionado', e)
-          });
-
-          if (item.artists && item.artists.length > 0) {
-             this.getArtistGenre(item.artists[0].id || item.artists[0]._id); 
-          }
-      } else if (item.type === 'artist' && !item.genre && item.id) {
-          this.getArtistGenre(item.id);
-      }
-      return;
+      this.selectItem(state.preSelected, state.preSelected.type);
+      return; 
     }
 
-    // 2. Comprobar si estamos en modo edición
+    // 2. Modo Edición
     this.route.paramMap.subscribe(params => {
       const id = params.get('id');
       if (id) {
@@ -106,108 +96,61 @@ export class ReviewComponent implements OnInit, OnDestroy {
     });
   }
 
+  // ==========================================
+  // LÓGICA DE CARGA Y BÚSQUEDA
+  // ==========================================
+
   loadReviewData(id: string) {
     this.isLoading = true;
     this.reviewService.getReviewById(id).subscribe({
       next: (review: any) => {
-        console.log('Datos recibidos para editar:', review);
-
         this.title = review.title;
         this.content = review.content;
-        this.rating = review.rating || review.puntuacion;
-        
-        if (review.timestamp_ms) {
-            this.timestampMs = review.timestamp_ms;
-        }
+        this.rating = review.rating;
+        this.timestampMs = review.timestamp_ms || null;
 
-        const spotifyId = review.spotify_id || review.spotifyId; 
-        const targetType = review.target_type || review.targetType;
+        const spotifyId = review.spotify_id; 
+        const targetType = review.target_type;
 
-        // CORRECCIÓN: Recuperar info fresca de Spotify usando el ID
         this.reviewService.getSpotifyItemInfo(spotifyId, targetType).subscribe({
           next: (item: any) => {
-            // Determinar URL de imagen según el tipo de respuesta de Spotify
-            let coverUrl = item.coverUrl;
-            if (!coverUrl && item.images && item.images.length > 0) coverUrl = item.images[0].url;
-            if (!coverUrl && item.album && item.album.images && item.album.images.length > 0) coverUrl = item.album.images[0].url;
-
-            this.selectedItem = {
-               id: spotifyId,
-               name: item.name, // ¡Nombre real de la canción!
-               type: targetType,
-               coverUrl: coverUrl,
-               artists: item.artists,
-               genre: item.genres ? item.genres[0] : undefined
-            };
-
-            // Si es canción, pillar duración para validar timestamp
-            if (targetType === 'track') {
-              this.trackDurationMs = item.duration_ms || item.durationMs;
-              // Intentar pillar género si no vino directo
-              if (!this.selectedItem.genre && item.artists && item.artists.length > 0) {
-                this.getArtistGenre(item.artists[0].id);
-              }
-            }
+            let coverUrl = item.coverUrl || item.images?.[0]?.url || item.album?.images?.[0]?.url;
+            
+            this.selectItem({
+              id: spotifyId,
+              name: item.name,
+              type: targetType,
+              coverUrl: coverUrl,
+              artists: item.artists,
+              genre: item.genres?.[0],
+              release_date: item.release_date || item.album?.release_date
+            }, targetType); 
 
             this.isLoading = false;
           },
-          error: (err) => {
-            console.error('Error cargando info de Spotify en edición:', err);
-            // Fallback si falla la API: usar datos guardados si existen o genéricos
+          error: () => {
             this.selectedItem = {
                id: spotifyId,
-               name: review.item_name || 'Elemento desconocido', 
+               name: review.item_name,
                type: targetType,
                coverUrl: review.item_cover_url
             };
+            this.extractDominantColor(review.item_cover_url);
             this.isLoading = false;
           }
         });
       },
-      error: (err) => {
-        console.error(err);
-        this.error = "Error al cargar la reseña para editar";
+      error: () => {
+        this.error = "Error al cargar la reseña";
         this.isLoading = false;
       }
     });
   }
 
-  openSuccessModal(title: string, message: string, actionOnClose: () => void) {
-    this.modalType = 'success';
-    this.modalTitle = title;
-    this.modalMessage = message;
-    this.pendingAction = actionOnClose;
-    this.showModal = true;
-  }
-
-  openConfirmModal(title: string, message: string, actionOnConfirm: () => void) {
-    this.modalType = 'confirm';
-    this.modalTitle = title;
-    this.modalMessage = message;
-    this.pendingAction = actionOnConfirm;
-    this.showModal = true;
-  }
-
-  onModalConfirm() {
-    this.pendingAction(); 
-    if (this.modalType === 'confirm') {
-       this.showModal = false; 
-    }
-  }
-
-  closeModal() {
-    this.showModal = false;
-  }
-
   search() {
     if (!this.searchQuery.trim()) return;
+    if (this.searchTimeout) clearTimeout(this.searchTimeout);
 
-    if (this.searchTimeout) {
-      clearTimeout(this.searchTimeout);
-      this.searchTimeout = undefined;
-    }
-
-    this.successMessage = '';
     this.isLoading = true;
     this.error = '';
 
@@ -216,319 +159,222 @@ export class ReviewComponent implements OnInit, OnDestroy {
         this.searchResults = results;
         this.isLoading = false;
       },
-      error: (error) => {
+      error: () => {
         this.error = 'Error al buscar contenido';
         this.isLoading = false;
-        console.error('Error searching:', error);
       }
     });
   }
 
+  onSearchInput() {
+    if (this.searchTimeout) clearTimeout(this.searchTimeout);
+    this.searchTimeout = setTimeout(() => this.search(), 400);
+  }
+
+  // ==========================================
+  // LÓGICA DE SELECCIÓN Y COLOR
+  // ==========================================
+
   selectItem(item: any, type: 'track' | 'album' | 'artist') {
-    // 1. Obtener URL de imagen
-    let coverUrl: string | undefined;
-    if (item.coverUrl) {
-      coverUrl = item.coverUrl;
-    } else if (item.images && item.images.length > 0) {
-      coverUrl = item.images[0].url;
-    } else if (item.album && item.album.images && item.album.images.length > 0) {
-      // Caso extra: a veces la imagen del track está dentro del album
-      coverUrl = item.album.images[0].url;
-    }
+    let coverUrl = item.coverUrl;
+    if (!coverUrl && item.images?.length) coverUrl = item.images[0].url;
+    if (!coverUrl && item.album?.images?.length) coverUrl = item.album.images[0].url;
 
-    // 2. Obtener el AÑO (Nueva lógica)
     let year = '';
-    if (item.release_date) {
-      year = item.release_date.split('-')[0]; // De "2022-05-01" saca "2022"
-    } else if (item.album && item.album.release_date) {
-      year = item.album.release_date.split('-')[0];
-    }
+    const date = item.release_date || item.album?.release_date;
+    if (date) year = date.split('-')[0];
 
-    // 3. Crear el objeto seleccionado
     this.selectedItem = {
       id: item.id,
       name: item.name,
       type: type,
       coverUrl: coverUrl,
-      year: year // <--- Aignamos el año aquí
+      year: year,
+      artists: item.artists,
+      genre: item.genre
     };
 
-    // 4. Lógica específica por tipo
     if (type === 'track') {
-      this.timestampMs = 0;
-      this.selectedItem.artists = item.artists;
-      
-      // Duración
-      if (item.duration_ms || item.durationMs) {
-        this.trackDurationMs = item.duration_ms || item.durationMs;
-      } else {
-        this.spotifyService.getTrackById(item.id).subscribe({
-          next: (track) => this.trackDurationMs = track.durationMs,
-          error: (e) => console.error(e)
-        });
+      this.trackDurationMs = item.duration_ms || item.durationMs || null;
+      if (!this.trackDurationMs) {
+         this.spotifyService.getTrackById(item.id).subscribe(t => this.trackDurationMs = t.durationMs);
       }
-
-      // Género
-      if (item.artists && item.artists.length > 0) {
+      if (!this.selectedItem.genre && item.artists?.length) {
         this.getArtistGenre(item.artists[0].id);
       }
-    } else {
-      this.trackDurationMs = null;
-      this.timestampMs = null;
+    } else if (type === 'artist' && item.genres?.length) {
+       this.selectedItem.genre = item.genres[0];
     }
 
-    if (type === 'album' && item.artists) {
-      this.selectedItem.artists = item.artists;
-    } else if (type === 'artist' && item.genres) {
-      this.selectedItem.genre = item.genres.length > 0 ? item.genres[0] : undefined;
-    }
-
-    // Limpiar buscador
     this.searchResults = { tracks: [], albums: [], artists: [] };
     this.searchQuery = '';
-  }
-
-  onSearchInput() {
-    if (this.searchTimeout) {
-      clearTimeout(this.searchTimeout);
+    
+    if (coverUrl) {
+      this.extractDominantColor(coverUrl);
+    } else {
+      this.resetGradient();
     }
-    this.searchTimeout = setTimeout(() => {
-      this.search();
-    }, 400);
   }
 
   getArtistGenre(artistId: string) {
-    this.spotifyService.getArtistById(artistId).subscribe({
-      next: (artist) => {
-        if (artist.genres.length > 0 && this.selectedItem) {
-          this.selectedItem.genre = artist.genres[0];
-        }
-      },
-      error: (error) => {
-        console.error('Error getting artist genre:', error);
-      }
+    this.spotifyService.getArtistById(artistId).subscribe(a => {
+      if (a.genres?.length && this.selectedItem) this.selectedItem.genre = a.genres[0];
     });
   }
 
-  isDragging: boolean = false;
-  starContainerRef: HTMLElement | null = null;
+  extractDominantColor(imageUrl: string) {
+    const colorThief = new ColorThief();
+    const img = new Image();
+    img.crossOrigin = 'Anonymous'; 
+    img.src = imageUrl;
+
+    img.onload = () => {
+      try {
+        const color = colorThief.getColor(img);
+        const rgbColor = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
+        this.currentGradient = `linear-gradient(to bottom, ${rgbColor}, #1a1a1a, #000000)`;
+      } catch (e) {
+        this.resetGradient();
+      }
+    };
+    img.onerror = () => this.resetGradient();
+  }
+
+  resetGradient() {
+    this.currentGradient = 'linear-gradient(to bottom, #451a1a, #1a1a1a, #000000)';
+  }
+
+  // ==========================================
+  // LÓGICA DE ESTRELLAS (UNIFICADA & DESLIZANTE)
+  // ==========================================
 
   setRating(value: number) {
-    // Asegurar que el valor esté entre 0 y 5, con incrementos de 0.5
     this.rating = Math.max(0, Math.min(5, Math.round(value * 2) / 2));
   }
 
-  onStarMouseDown(event: MouseEvent) {
+  // Inicio (Click o Toque)
+  onStarStart(event: MouseEvent | TouchEvent) {
     this.isDragging = true;
-    this.starContainerRef = event.currentTarget as HTMLElement;
-    this.updateRatingFromEvent(event);
-    event.preventDefault();
+    this.calculateRating(event);
   }
 
-  onStarMouseMove(event: MouseEvent) {
+  // Movimiento (Ratón o Dedo)
+  onStarMove(event: MouseEvent | TouchEvent) {
     if (this.isDragging) {
-      this.updateRatingFromEvent(event);
+      // PREVENIR SCROLL Y NAVEGACIÓN ATRÁS
+      if (event.cancelable) {
+        event.preventDefault();
+      }
+      this.calculateRating(event);
     }
   }
 
-  onStarMouseUp(event: MouseEvent) {
-    if (this.isDragging) {
-      this.updateRatingFromEvent(event);
-      this.isDragging = false;
-    }
+  // Fin (Soltar)
+  onStarEnd() {
+    this.isDragging = false;
   }
 
-  onStarMouseLeave() {
-    // No detener el arrastre aquí, permitir continuar fuera del contenedor
-  }
+  // Cálculo Matemático
+  private calculateRating(event: MouseEvent | TouchEvent) {
+    if (!this.starContainer) return;
 
-  @HostListener('document:mouseup', ['$event'])
-  onDocumentMouseUp(event: MouseEvent) {
-    if (this.isDragging) {
-      this.isDragging = false;
-      this.starContainerRef = null;
+    let clientX;
+    if (event instanceof MouseEvent) {
+      clientX = event.clientX;
+    } else if (event.touches && event.touches.length > 0) {
+      clientX = event.touches[0].clientX;
+    } else {
+      return;
     }
-  }
 
-  @HostListener('document:mousemove', ['$event'])
-  onDocumentMouseMove(event: MouseEvent) {
-    if (this.isDragging && this.starContainerRef) {
-      const rect = this.starContainerRef.getBoundingClientRect();
-      const x = event.clientX - rect.left;
-      const width = rect.width;
-      
-      // Permitir arrastrar un poco fuera del contenedor para mejor UX
-      const clampedX = Math.max(0, Math.min(width, x));
-      const position = (clampedX / width) * 5;
-      const rating = Math.max(0, Math.min(5, Math.round(position * 2) / 2));
-      this.rating = rating;
-    }
+    const rect = this.starContainer.nativeElement.getBoundingClientRect();
+    const width = rect.width;
+    
+    // Posición X relativa al contenedor
+    let x = clientX - rect.left;
+
+    // Limites
+    if (x < 0) x = 0;
+    if (x > width) x = width;
+
+    // 0 a 5
+    const rawScore = (x / width) * 5;
+    // Redondeo a .5
+    this.rating = Math.max(0, Math.min(5, Math.ceil(rawScore * 2) / 2));
   }
 
   ngOnDestroy() {
     this.isDragging = false;
-    this.starContainerRef = null;
   }
 
-  onStarClick(event: MouseEvent) {
-    // Si no estaba arrastrando, actualizar con un clic
-    if (!this.isDragging) {
-      this.updateRatingFromEvent(event);
-    }
-  }
-
-  updateRatingFromEvent(event: MouseEvent) {
-    const container = (event.currentTarget as HTMLElement);
-    const rect = container.getBoundingClientRect();
-    const x = event.clientX - rect.left;
-    const width = rect.width;
-    
-    // Calcular el rating basado en la posición X (0 a 5 estrellas)
-    // Cada estrella ocupa width/5, cada media estrella ocupa width/10
-    const position = (x / width) * 5; // Posición de 0 a 5
-    
-    // Redondear a la media estrella más cercana (0, 0.5, 1, 1.5, etc.)
-    const rating = Math.max(0, Math.min(5, Math.round(position * 2) / 2));
-    
-    this.rating = rating;
-  }
+  // ==========================================
+  // ENVÍO Y UTILIDADES
+  // ==========================================
 
   submitReview() {
-    console.log('Intentando enviar formulario...');
+    if (!this.selectedItem || this.rating === 0) return;
 
-    // 1. Validaciones básicas
-    if (!this.selectedItem || this.rating === 0) {
-      console.warn('Faltan datos:', { item: this.selectedItem, rating: this.rating });
-      this.error = 'Por favor selecciona un item y establece una valoración';
-      return;
-    }
-
-    // 2. Validación de Timestamp
-    if (this.selectedItem.type === 'track' && this.timestampMs !== null) {
-      if (this.trackDurationMs && this.timestampMs > this.trackDurationMs) {
-        this.error = `El momento exacto no puede ser mayor a la duración de la canción (${this.formatDuration(this.trackDurationMs)})`;
-        return;
-      }
-    }
-
-    // 3. Preparar datos
-    const reviewData: any = {
+    const data: any = {
       spotify_id: this.selectedItem.id,
       target_type: this.selectedItem.type,
       rating: this.rating,
       genre: this.selectedItem.genre || '',
       content: this.content,
-      title: this.title
+      title: this.title,
+      item_name: this.selectedItem.name, 
+      item_cover_url: this.selectedItem.coverUrl
     };
 
-    // Añadir timestamp si es track
     if (this.selectedItem.type === 'track') {
-      const sanitizedTimestamp = this.timestampMs ?? 0;
-      reviewData.timestamp_ms = Math.max(0, Math.floor(sanitizedTimestamp));
+      data.timestamp_ms = Math.floor(this.timestampMs || 0);
     }
 
-    console.log('Datos a enviar:', reviewData);
-
-    // 4. Lógica de envío
     if (this.isEditMode && this.reviewId) {
-      // --- MODO EDICIÓN ---
-      this.reviewService.updateReview(this.reviewId, reviewData).subscribe({
-        next: (res) => {
-          this.openSuccessModal(
-            '¡Reseña Actualizada!', 
-            'Los cambios se han guardado correctamente.', 
-            () => this.router.navigate(['/app/feed'])
-          );
-        },
-        error: (err) => this.error = 'Error al actualizar: ' + (err.error?.message || err.message)
+      this.reviewService.updateReview(this.reviewId, data).subscribe({
+        next: () => this.openSuccessModal('¡Actualizado!', 'Tu reseña se ha guardado.', () => this.router.navigate(['/app/feed'])),
+        error: () => this.error = 'Error al actualizar'
       });
     } else {
-      // --- MODO CREACIÓN ---
-      const accessToken = this.authService.getAccessToken();
-      if (!accessToken) {
-        this.error = 'Debes estar autenticado para crear una reseña';
-        return;
-      }
-
-      const headers = { 'Authorization': `Bearer ${accessToken}` };
-      
-      this.http.post(`/api/reviews`, reviewData, { headers }).subscribe({
-        next: (response) => {
-          this.openSuccessModal(
-            '¡Reseña Publicada!', 
-            'Tu reseña se ha creado y publicado en el muro.', 
-            () => this.router.navigate(['/app/feed'])
-          );
-        },
-        error: (error) => {
-          this.error = 'Error al crear la reseña';
-        }
+      const token = this.authService.getAccessToken();
+      const headers = { 'Authorization': `Bearer ${token}` };
+      this.http.post(`/api/reviews`, data, { headers }).subscribe({
+        next: () => this.openSuccessModal('¡Publicado!', 'Tu reseña está en el muro.', () => this.router.navigate(['/app/feed'])),
+        error: () => this.error = 'Error al publicar'
       });
     }
   }
 
   deleteReview() {
     if (this.isEditMode && this.reviewId) {
-      this.openConfirmModal(
-        '¿Eliminar Reseña?',
-        'Esta acción es irreversible. ¿Estás seguro?',
-        () => {
-          this.reviewService.deleteReview(this.reviewId!).subscribe({
-            next: () => {
-              this.showModal = false;
-              this.router.navigate(['/app/feed']);
-            },
-            error: (err) => this.error = 'Error al eliminar'
-          });
-        }
-      );
+      this.openConfirmModal('¿Eliminar?', 'No podrás deshacerlo.', () => {
+        this.reviewService.deleteReview(this.reviewId!).subscribe({
+          next: () => { this.showModal = false; this.router.navigate(['/app/feed']); }
+        });
+      });
     }
   }
 
-  resetForm() {
-    this.selectedItem = null;
-    this.rating = 0;
-    this.title = '';
-    this.content = '';
-    this.timestampMs = null;
-    this.trackDurationMs = null;
-    this.searchQuery = '';
-    this.error = '';
-    this.isEditMode = false;
-    this.reviewId = null;
+  // Modales
+  openSuccessModal(t: string, m: string, cb: () => void) {
+    this.modalType = 'success'; this.modalTitle = t; this.modalMessage = m; this.pendingAction = cb; this.showModal = true;
   }
-
-  formatDuration(ms: number | null): string {
-    if (!ms || ms < 0) return '0:00';
-    const totalSeconds = Math.floor(ms / 1000);
-    const minutes = Math.floor(totalSeconds / 60);
-    const seconds = totalSeconds % 60;
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  openConfirmModal(t: string, m: string, cb: () => void) {
+    this.modalType = 'confirm'; this.modalTitle = t; this.modalMessage = m; this.pendingAction = cb; this.showModal = true;
   }
+  onModalConfirm() { this.pendingAction(); if (this.modalType === 'confirm') this.showModal = false; }
+  closeModal() { this.showModal = false; }
 
+  // Utils
   formatTimestamp(ms: number | null): string {
-    return this.formatDuration(ms);
+    if (!ms || ms < 0) return '0:00';
+    const min = Math.floor(ms / 60000);
+    const sec = Math.floor((ms % 60000) / 1000);
+    return `${min}:${sec.toString().padStart(2, '0')}`;
   }
-
-  onTimestampInput(event: Event) {
-    const inputValue = Number((event.target as HTMLInputElement).value);
-    this.timestampMs = isNaN(inputValue) ? 0 : inputValue;
-    this.onTimestampChange();
-  }
-
-  onTimestampChange() {
-    // Validar que el timestamp no exceda la duración
-    if (this.selectedItem?.type === 'track' && this.timestampMs !== null && this.trackDurationMs) {
-      if (this.timestampMs > this.trackDurationMs) {
-        this.error = `El momento exacto no puede ser mayor a la duración de la canción (${this.formatDuration(this.trackDurationMs)})`;
-      } else {
-        this.error = '';
-      }
-    }
-  }
-
-  getArtistNames(artists: { name: string }[]): string {
-    if (!artists) return '';
-    return artists.map(artist => artist.name).join(', ');
+  
+  onTimestampInput(e: Event) { this.timestampMs = Number((e.target as HTMLInputElement).value); }
+  
+  getArtistNames(artists?: { name: string }[]): string {
+    return artists ? artists.map(a => a.name).join(', ') : '';
   }
 }

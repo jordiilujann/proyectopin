@@ -1,6 +1,6 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterLink } from '@angular/router';
+import { RouterLink, Router } from '@angular/router'; // Añadido Router
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 
 import { AuthService } from '../../services/auth.service';
@@ -42,7 +42,8 @@ export class ProfileComponent implements OnInit {
   constructor(
     private auth: AuthService,
     private http: HttpClient,
-    private reviewService: ReviewService
+    private reviewService: ReviewService,
+    private router: Router // Inyectamos el Router
   ) {}
 
   ngOnInit(): void {
@@ -68,9 +69,9 @@ export class ProfileComponent implements OnInit {
         this.loadSpotifyBlocks();
 
         const currentUserId = this.auth.getUserId();
-          if (currentUserId) {
+        if (currentUserId) {
           this.loadFollowersCount(currentUserId);
-}
+        }
       },
       error: () => {
         this.loading = false;
@@ -100,15 +101,24 @@ export class ProfileComponent implements OnInit {
   // Seguidores en Jarana (colección follows)
   // -----------------------------
   private loadFollowersCount(userId: string): void {
-  // Esta ruta usa followController.getFollowerCount
-  // GET /api/follows/followers/:userId/count
-    this.http
-      .get<{ userId: string; followers: number }>(
-        `${this.API_BASE}/api/follows/followers/${userId}/count`
-      )
+    // Intentamos obtener la lista de seguidores. 
+    // Si el backend devuelve un array, su longitud es el número de seguidores.
+    // Si devuelve un objeto con la propiedad 'count' o 'followers', nos adaptamos.
+    this.http.get<any>(`${this.API_BASE}/api/follows/followers/${userId}`)
       .subscribe({
         next: (res) => {
-          this.followersCount = res?.followers ?? 0;
+          if (Array.isArray(res)) {
+            // Si devuelve un array de seguidores
+            this.followersCount = res.length;
+          } else if (res && typeof res.count === 'number') {
+             // Si devuelve un objeto { count: 10 }
+            this.followersCount = res.count;
+          } else if (res && typeof res.followers === 'number') {
+             // Si devuelve un objeto { followers: 10 }
+             this.followersCount = res.followers;
+          } else {
+            this.followersCount = 0;
+          }
           console.log('[Profile] followersCount =', this.followersCount);
         },
         error: (err) => {
@@ -289,5 +299,27 @@ export class ProfileComponent implements OnInit {
           this.loadingPlaylistTracks[playlistId] = false;
         }
       });
+  }
+
+  // --- NUEVA FUNCIÓN: Ir a reseñar una canción ---
+  goToReview(track: any) {
+    if (!track) return;
+    
+    // Preparamos el objeto con los datos de la canción
+    const itemToReview = {
+      id: track.id,
+      name: track.name,
+      type: 'track',
+      coverUrl: track.album?.images?.[0]?.url || track.images?.[0]?.url,
+      artists: track.artists ? track.artists.map((a: any) => ({ name: a.name })) : [],
+      year: track.album?.release_date ? track.album.release_date.split('-')[0] : ''
+    };
+
+    console.log('Yendo a reseñar desde Playlist:', itemToReview);
+
+    // Navegamos pasando el estado
+    this.router.navigate(['/app/reviews/create'], { 
+      state: { preSelected: itemToReview } 
+    });
   }
 }
