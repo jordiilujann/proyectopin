@@ -9,8 +9,7 @@ import { SpotifyService, SpotifyTrack, SpotifyAlbum, SpotifyArtist } from '../..
 import { AuthService } from '../../services/auth.service';
 import { ReviewService } from '../../services/review.service';
 
-// Librería de color
-import ColorThief from 'colorthief';
+// Librería de color - will be imported dynamically
 
 interface SearchResult {
   tracks: SpotifyTrack[];
@@ -249,18 +248,22 @@ export class ReviewComponent implements OnInit, OnDestroy {
     });
   }
 
-  extractDominantColor(imageUrl: string) {
-    const colorThief = new ColorThief();
+  async extractDominantColor(imageUrl: string) {
     const img = new Image();
     img.crossOrigin = 'Anonymous'; 
     img.src = imageUrl;
 
-    img.onload = () => {
+    img.onload = async () => {
       try {
+        // Dynamic import - Vite will resolve to ESM build via alias
+        const ColorThiefModule = await import('colorthief');
+        const ColorThief = ColorThiefModule.default || ColorThiefModule;
+        const colorThief = new ColorThief();
         const color = colorThief.getColor(img);
         const rgbColor = `rgb(${color[0]}, ${color[1]}, ${color[2]})`;
         this.currentGradient = `linear-gradient(to bottom, ${rgbColor}, #1a1a1a, #000000)`;
       } catch (e) {
+        console.error('Error extracting color:', e);
         this.resetGradient();
       }
     };
