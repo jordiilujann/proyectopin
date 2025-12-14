@@ -17,16 +17,25 @@ const ReviewSchema = new mongoose.Schema({
   },
   genre: { 
     type: String, 
-    },
+  },
   
   target_type: { 
     type: String, 
-    enum: [ 'track', 'album', 'artist', 'playlist' ],
+    enum: [ 'track', 'album', 'artist', 'playlist', 'concert' ],
     required: true 
   },
 
   spotify_id: { 
     type: String, 
+  },
+
+  // Campos específicos para conciertos
+  venue: {
+    type: String,
+    trim: true
+  },
+  concert_date: {
+    type: Date
   },
 
   content: { 

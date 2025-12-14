@@ -1,6 +1,5 @@
 <div class="min-h-screen bg-gradient-to-b from-[#451a1a] via-[#1a1a1a] to-black text-white p-4 pb-32">
   
-  <!-- Header con botón de notificaciones -->
   <div class="flex justify-end mb-4">
     <a 
       routerLink="/app/notifications"
@@ -155,11 +154,14 @@
           <div *ngFor="let r of reviews" class="bg-[#151515] rounded-xl border border-white/5 overflow-hidden transition-all"
                [class.border-zinc-700]="isReviewExpanded(r._id)">
             
-            <!-- Reseña compacta (siempre visible) -->
             <div (click)="toggleReviewDetails(r._id)" class="grid grid-cols-2 sm:grid-cols-3 gap-4 p-4 cursor-pointer hover:bg-white/5 transition-colors">
               <div class="group relative col-span-1">
-                <div class="aspect-square rounded-xl overflow-hidden shadow-lg relative">
-                  <img [src]="r.album_image || r.item_cover_url || r.cover_url" class="w-full h-full object-cover transition duration-300 group-hover:scale-105" alt="">
+                <div class="aspect-square rounded-xl overflow-hidden shadow-lg relative bg-zinc-800 flex items-center justify-center">
+                  <img *ngIf="r.target_type !== 'concert'" [src]="r.album_image || r.item_cover_url || r.cover_url" class="w-full h-full object-cover transition duration-300 group-hover:scale-105" alt="">
+                  <div *ngIf="r.target_type === 'concert'" class="w-full h-full bg-gradient-to-br from-purple-800 to-indigo-900 flex items-center justify-center">
+                     <span class="text-4xl">🎟️</span>
+                  </div>
+
                   <div class="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
                     <span class="text-yellow-400 font-bold text-xl">{{ r.rating }}/5</span>
                   </div>
@@ -168,9 +170,14 @@
               
               <div class="col-span-1 sm:col-span-2 flex flex-col justify-center min-w-0">
                 <h4 class="text-sm font-bold text-zinc-100 mb-1 truncate">{{ r.title || r.item_name || 'Sin título' }}</h4>
-                <p class="text-xs text-zinc-400 mb-2 truncate" *ngIf="r.item_artists && (isArray(r.item_artists) ? r.item_artists.length > 0 : r.item_artists)">
-                  {{ formatArtists(r.item_artists) }}
+                
+                <p class="text-xs text-zinc-400 mb-2 truncate">
+                  <span *ngIf="r.target_type === 'concert'">{{ r.item_name }} @ {{ r.venue }}</span>
+                  <span *ngIf="r.target_type !== 'concert' && r.item_artists && (isArray(r.item_artists) ? r.item_artists.length > 0 : r.item_artists)">
+                    {{ formatArtists(r.item_artists) }}
+                  </span>
                 </p>
+
                 <div class="flex items-center gap-2">
                   <div class="flex text-yellow-500 text-xs">
                     @for (star of [1,2,3,4,5]; track star) {
@@ -188,24 +195,26 @@
               </div>
             </div>
 
-            <!-- Contenido expandido -->
             <div *ngIf="isReviewExpanded(r._id)" class="border-t border-white/5 p-4 animate-fadeIn">
               <div class="space-y-3">
-                <!-- Información del item -->
                 <div class="flex items-start gap-3">
-                  <img [src]="r.album_image || r.item_cover_url || r.cover_url" class="w-16 h-16 rounded-lg object-cover shadow-md" alt="">
+                  <img *ngIf="r.target_type !== 'concert'" [src]="r.album_image || r.item_cover_url || r.cover_url" class="w-16 h-16 rounded-lg object-cover shadow-md" alt="">
+                  <div *ngIf="r.target_type === 'concert'" class="w-16 h-16 rounded-lg bg-purple-900 flex items-center justify-center shadow-md text-2xl">🎟️</div>
+
                   <div class="flex-1 min-w-0">
                     <h5 class="font-bold text-zinc-100 text-sm mb-1">{{ r.item_name || r.title || 'Sin título' }}</h5>
-                    <p class="text-xs text-zinc-400" *ngIf="r.item_artists && (isArray(r.item_artists) ? r.item_artists.length > 0 : r.item_artists)">
+                    <p class="text-xs text-zinc-400" *ngIf="r.target_type !== 'concert' && r.item_artists && (isArray(r.item_artists) ? r.item_artists.length > 0 : r.item_artists)">
                       {{ formatArtists(r.item_artists) }}
                     </p>
-                    <p class="text-xs text-zinc-500 mt-1" *ngIf="r.target_type">
-                      {{ r.target_type === 'track' ? '🎵 Canción' : r.target_type === 'album' ? '💿 Álbum' : '👤 Artista' }}
+                    <p class="text-xs text-zinc-500 mt-1">
+                       {{ r.target_type === 'track' ? '🎵 Canción' : r.target_type === 'album' ? '💿 Álbum' : r.target_type === 'concert' ? '🎟️ Concierto' : '👤 Artista' }}
+                    </p>
+                    <p *ngIf="r.target_type === 'concert'" class="text-xs text-zinc-400 mt-1">
+                       {{ r.venue }} · {{ r.concert_date | date:'mediumDate' }}
                     </p>
                   </div>
                 </div>
 
-                <!-- Rating -->
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-bold text-zinc-300">Rating:</span>
                   <div class="flex text-yellow-500 text-sm">
@@ -218,7 +227,6 @@
                   <span class="text-sm text-zinc-400 ml-2">{{ r.rating }}/5</span>
                 </div>
 
-                <!-- Timestamp si es track -->
                 <div *ngIf="r.target_type === 'track' && r.timestamp_ms && r.timestamp_ms > 0" class="flex items-center gap-2 text-xs text-zinc-400">
                   <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -226,12 +234,10 @@
                   <span>Momento clave: {{ formatDuration(r.timestamp_ms) }}</span>
                 </div>
 
-                <!-- Contenido de la reseña -->
                 <div *ngIf="r.content" class="bg-black/40 rounded-lg p-3 border border-zinc-800">
                   <p class="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">{{ r.content }}</p>
                 </div>
 
-                <!-- Botón para editar -->
                 <div class="flex justify-end pt-2">
                   <a [routerLink]="['/app/review', {id: r._id}]" 
                      class="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-2">

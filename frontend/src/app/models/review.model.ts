@@ -4,7 +4,7 @@ export interface Review {
   user_name?: string; // Para mostrar el nombre del usuario
   title: string; // Título de la reseña
   genre?: string;
-  target_type: 'track' | 'album' | 'artist' | 'playlist';
+  target_type: 'track' | 'album' | 'artist' | 'playlist' | 'concert';
   spotify_id: string;
   content: string;
   rating: number;
@@ -14,6 +14,10 @@ export interface Review {
   item_name?: string; // Nombre del item (canción, álbum, artista)
   item_cover_url?: string; // URL de la carátula
   item_artists?: string[]; // Artistas relacionados
+  
+  // Campos opcionales para conciertos
+  venue?: string;
+  concert_date?: string;
 }
 
 export interface ReviewResponse {

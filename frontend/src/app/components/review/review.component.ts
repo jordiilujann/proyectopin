@@ -19,9 +19,9 @@ interface SearchResult {
 }
 
 interface SelectedItem {
-  id: string;
+  id?: string; // Opcional para conciertos manuales
   name: string;
-  type: 'track' | 'album' | 'artist';
+  type: 'track' | 'album' | 'artist' | 'concert';
   artists?: { name: string }[];
   genre?: string;
   coverUrl?: string;
@@ -52,6 +52,12 @@ export class ReviewComponent implements OnInit, OnDestroy {
   timestampMs: number | null = null;
   trackDurationMs: number | null = null;
   
+  // --- NUEVO: ESTADO CONCIERTO ---
+  isConcertMode: boolean = false;
+  manualArtist: string = '';
+  manualVenue: string = '';
+  manualDate: string = '';
+  
   // --- ESTADO UI / SISTEMA ---
   error: string = '';
   isEditMode: boolean = false;
@@ -71,14 +77,14 @@ export class ReviewComponent implements OnInit, OnDestroy {
   constructor(
     private spotifyService: SpotifyService,
     private http: HttpClient,
-    private authService: AuthService,
+    public authService: AuthService,
     private reviewService: ReviewService,
     private route: ActivatedRoute, 
     private router: Router
   ) {}
 
   ngOnInit() {
-    // 1. Datos precargados desde Feed
+    // 1. Datos precargados desde Feed o Playlist
     const state = history.state;
     if (state && state.preSelected) {
       this.selectItem(state.preSelected, state.preSelected.type);
@@ -100,6 +106,18 @@ export class ReviewComponent implements OnInit, OnDestroy {
   // LÓGICA DE CARGA Y BÚSQUEDA
   // ==========================================
 
+  toggleConcertMode(enable: boolean) {
+    this.isConcertMode = enable;
+    this.selectedItem = null;
+    this.searchQuery = '';
+    this.searchResults = { tracks: [], albums: [], artists: [] };
+    this.resetGradient();
+    
+    if (enable) {
+      this.currentGradient = 'linear-gradient(to bottom, #4a1a4a, #1a1a1a, #000000)'; // Morado para conciertos
+    }
+  }
+
   loadReviewData(id: string) {
     this.isLoading = true;
     this.reviewService.getReviewById(id).subscribe({
@@ -109,36 +127,45 @@ export class ReviewComponent implements OnInit, OnDestroy {
         this.rating = review.rating;
         this.timestampMs = review.timestamp_ms || null;
 
-        const spotifyId = review.spotify_id; 
-        const targetType = review.target_type;
+        if (review.target_type === 'concert') {
+          this.isConcertMode = true;
+          this.manualArtist = review.item_name;
+          this.manualVenue = review.venue || '';
+          this.manualDate = review.concert_date ? review.concert_date.split('T')[0] : '';
+          this.currentGradient = 'linear-gradient(to bottom, #4a1a4a, #1a1a1a, #000000)';
+          this.isLoading = false;
+        } else {
+          const spotifyId = review.spotify_id; 
+          const targetType = review.target_type;
 
-        this.reviewService.getSpotifyItemInfo(spotifyId, targetType).subscribe({
-          next: (item: any) => {
-            let coverUrl = item.coverUrl || item.images?.[0]?.url || item.album?.images?.[0]?.url;
-            
-            this.selectItem({
-              id: spotifyId,
-              name: item.name,
-              type: targetType,
-              coverUrl: coverUrl,
-              artists: item.artists,
-              genre: item.genres?.[0],
-              release_date: item.release_date || item.album?.release_date
-            }, targetType); 
+          this.reviewService.getSpotifyItemInfo(spotifyId, targetType).subscribe({
+            next: (item: any) => {
+              let coverUrl = item.coverUrl || item.images?.[0]?.url || item.album?.images?.[0]?.url;
+              
+              this.selectItem({
+                id: spotifyId,
+                name: item.name,
+                type: targetType,
+                coverUrl: coverUrl,
+                artists: item.artists,
+                genre: item.genres?.[0],
+                release_date: item.release_date || item.album?.release_date
+              }, targetType); 
 
-            this.isLoading = false;
-          },
-          error: () => {
-            this.selectedItem = {
-               id: spotifyId,
-               name: review.item_name,
-               type: targetType,
-               coverUrl: review.item_cover_url
-            };
-            this.extractDominantColor(review.item_cover_url);
-            this.isLoading = false;
-          }
-        });
+              this.isLoading = false;
+            },
+            error: () => {
+              this.selectedItem = {
+                 id: spotifyId,
+                 name: review.item_name,
+                 type: targetType,
+                 coverUrl: review.item_cover_url
+              };
+              this.extractDominantColor(review.item_cover_url);
+              this.isLoading = false;
+            }
+          });
+        }
       },
       error: () => {
         this.error = "Error al cargar la reseña";
@@ -175,7 +202,7 @@ export class ReviewComponent implements OnInit, OnDestroy {
   // LÓGICA DE SELECCIÓN Y COLOR
   // ==========================================
 
-  selectItem(item: any, type: 'track' | 'album' | 'artist') {
+  selectItem(item: any, type: 'track' | 'album' | 'artist' | 'concert') {
     let coverUrl = item.coverUrl;
     if (!coverUrl && item.images?.length) coverUrl = item.images[0].url;
     if (!coverUrl && item.album?.images?.length) coverUrl = item.album.images[0].url;
@@ -196,7 +223,7 @@ export class ReviewComponent implements OnInit, OnDestroy {
 
     if (type === 'track') {
       this.trackDurationMs = item.duration_ms || item.durationMs || null;
-      if (!this.trackDurationMs) {
+      if (!this.trackDurationMs && item.id) {
          this.spotifyService.getTrackById(item.id).subscribe(t => this.trackDurationMs = t.durationMs);
       }
       if (!this.selectedItem.genre && item.artists?.length) {
@@ -245,7 +272,7 @@ export class ReviewComponent implements OnInit, OnDestroy {
   }
 
   // ==========================================
-  // LÓGICA DE ESTRELLAS (UNIFICADA & DESLIZANTE)
+  // LÓGICA DE ESTRELLAS
   // ==========================================
 
   setRating(value: number) {
@@ -261,7 +288,6 @@ export class ReviewComponent implements OnInit, OnDestroy {
   // Movimiento (Ratón o Dedo)
   onStarMove(event: MouseEvent | TouchEvent) {
     if (this.isDragging) {
-      // PREVENIR SCROLL Y NAVEGACIÓN ATRÁS
       if (event.cancelable) {
         event.preventDefault();
       }
@@ -312,21 +338,36 @@ export class ReviewComponent implements OnInit, OnDestroy {
   // ==========================================
 
   submitReview() {
-    if (!this.selectedItem || this.rating === 0) return;
+    const isValidConcert = this.isConcertMode && this.manualArtist && this.manualVenue && this.manualDate;
+    const isValidSpotify = !this.isConcertMode && this.selectedItem;
 
-    const data: any = {
-      spotify_id: this.selectedItem.id,
-      target_type: this.selectedItem.type,
+    if ((!isValidSpotify && !isValidConcert) || this.rating === 0) return;
+
+    let data: any = {
       rating: this.rating,
-      genre: this.selectedItem.genre || '',
       content: this.content,
       title: this.title,
-      item_name: this.selectedItem.name, 
-      item_cover_url: this.selectedItem.coverUrl
     };
 
-    if (this.selectedItem.type === 'track') {
-      data.timestamp_ms = Math.floor(this.timestampMs || 0);
+    if (this.isConcertMode) {
+      // Datos para concierto manual
+      data.target_type = 'concert';
+      data.item_name = this.manualArtist; // Guardamos el Artista en item_name
+      data.venue = this.manualVenue;
+      data.concert_date = this.manualDate;
+      data.spotify_id = `concert_${Date.now()}`; // ID falso único
+      data.item_cover_url = null;
+      data.genre = '';
+    } else if (this.selectedItem) {
+      data.spotify_id = this.selectedItem.id;
+      data.target_type = this.selectedItem.type;
+      data.genre = this.selectedItem.genre || '';
+      data.item_name = this.selectedItem.name;
+      data.item_cover_url = this.selectedItem.coverUrl;
+      
+      if (this.selectedItem.type === 'track') {
+        data.timestamp_ms = Math.floor(this.timestampMs || 0);
+      }
     }
 
     if (this.isEditMode && this.reviewId) {
